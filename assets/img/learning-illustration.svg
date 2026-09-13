@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 460" width="560" height="460" role="img" aria-label="Illustration of a digital literacy class">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9f5dc"/>
+      <stop offset="1" stop-color="#f8fcf3"/>
+    </linearGradient>
+    <linearGradient id="scr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3e6b2b"/>
+      <stop offset="1" stop-color="#27501a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6cf6d"/>
+      <stop offset="1" stop-color="#e09e19"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="560" height="460" fill="url(#bg)"/>
+  <circle cx="470" cy="70" r="70" fill="#abdd88" opacity=".5"/>
+  <circle cx="90" cy="400" r="110" fill="#ccebb5" opacity=".5"/>
+
+  <!-- Floating symbols -->
+  <g fill="none" stroke="#5aa72a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M52 96 l10 -10 10 10 10 -10 10 10"/>
+    <circle cx="42" cy="88" r="9" fill="#e09e19" stroke="none"/>
+    <path d="M15 140 h38"/>
+    <path d="M22 150 h24"/>
+    <path d="M492 132 l12 -8 l12 8 l-12 22 Z" fill="#a9d477" stroke="none"/>
+    <path d="M498 150 l3 14 l-3 6" stroke="#4b8a24"/>
+  </g>
+
+  <circle cx="86" cy="66" r="16" fill="#f6cf6d"/>
+  <path d="M86 82 v20 M78 92 h16" stroke="#c28212" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Table -->
+  <ellipse cx="300" cy="382" rx="190" ry="40" fill="#8cce54" opacity=".35"/>
+  <path d="M130 330 L470 330 L452 388 Q300 412 148 388 Z" fill="#dceccb" stroke="#bfe39a" stroke-width="3"/>
+  <rect x="150" y="330" width="300" height="14" rx="7" fill="#eef6e7"/>
+
+  <!-- Laptop base -->
+  <path d="M228 300 L332 300 L354 344 Q300 354 206 344 Z" fill="#2d5b1c"/>
+  <path d="M206 344 Q300 354 354 344 L348 352 Q300 362 212 352 Z" fill="#1c3f12"/>
+
+  <!-- Laptop screen -->
+  <rect x="196" y="144" width="168" height="156" rx="10" fill="url(#scr)"/>
+  <rect x="182" y="138" width="196" height="14" rx="7" fill="#377d1c"/>
+
+  <!-- Screen content -->
+  <g>
+    <rect x="210" y="170" width="60" height="16" rx="8" fill="#a9d477"/>
+    <rect x="210" y="194" width="40" height="16" rx="8" fill="#e09e19"/>
+    <rect x="210" y="218" width="52" height="16" rx="8" fill="#7cc143"/>
+    <circle cx="340" cy="162" r="12" fill="#f6cf6d"/>
+    <path d="M336 162 h8 M340 158 v8" stroke="#75450d" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M286 164 h38" stroke="#6f9b4e" stroke-width="5" stroke-linecap="round"/>
+    <path d="M286 180 h38" stroke="#6f9b4e" stroke-width="5" stroke-linecap="round" stroke-dasharray="7 5"/>
+    <path d="M344 196 l6 8 m0 -8 l-6 8" stroke="#4b8a24" stroke-width="4" stroke-linecap="round"/>
+    <text x="210" y="268" font-family="Verdana, sans-serif" font-size="11" font-weight="bold" fill="#cfe3b0" letter-spacing="1">AL-FALAAH</text>
+    <circle cx="344" cy="262" r="6" fill="#e09e19"/>
+  </g>
+
+  <!-- Child (left) -->
+  <g>
+    <circle cx="128" cy="230" r="16" fill="#b87a45"/>
+    <path d="M112 230 q-2 -3 4 -5 q10 2 24 0 q4 3 2 7 Q132 238 118 234 Z" fill="#b87a45"/>
+    <rect x="100" y="246" width="56" height="44" rx="12" fill="#e09e19"/>
+    <rect x="100" y="246" width="56" height="44" rx="12" fill="none" stroke="#bb7f0c" stroke-width="3"/>
+    <rect x="132" y="180" width="26" height="38" rx="8" fill="#c28212" transform="rotate(8 145 199)"/>
+    <path d="M96 300 q8 28 18 34 l-10 18 q-16 -4 -24 -30 Z" fill="#2d5b1c"/>
+    <path d="M160 300 q-8 28 -18 34 l10 18 q16 -4 24 -30 Z" fill="#1c3f12"/>
+    <line x1="118" y1="252" x2="140" y2="270" stroke="#b87a45" stroke-width="5" stroke-linecap="round"/>
+    <line x1="146" y1="252" x2="136" y2="270" stroke="#b87a45" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="146" cy="330" r="7" fill="#1c3f12"/>
+    <circle cx="112" cy="330" r="7" fill="#1c3f12"/>
+  </g>
+
+  <!-- Teacher (right) -->
+  <g>
+    <circle cx="420" cy="200" r="17" fill="#e3a76f"/>
+    <path d="M404 204 q6 4 16 4 t16 -4 q4 8 0 12 q-5 4 -16 2 t-16 -2 q-4 -4 0 -12" fill="#e3a76f"/>
+    <rect x="416" y="168" width="24" height="20" rx="6" fill="#2f5d1f"/>
+    <rect x="398" y="218" width="44" height="62" rx="14" fill="#5aa72a"/>
+    <rect x="398" y="218" width="44" height="62" rx="14" fill="none" stroke="#377d1c" stroke-width="3"/>
+    <rect x="412" y="250" width="16" height="40" rx="6" fill="#e09e19"/>
+    <path d="M392 292 q2 20 10 26 l-8 14 q-10 -2 -14 -20 Z" fill="#2d5b1c"/>
+    <path d="M448 292 q-2 20 -10 26 l8 14 q10 -2 14 -20 Z" fill="#1c3f12"/>
+    <line x1="404" y1="240" x2="360" y2="286" stroke="#e3a76f" stroke-width="5" stroke-linecap="round"/>
+    <line x1="438" y1="240" x2="398" y2="262" stroke="#e3a76f" stroke-width="5" stroke-linecap="round"/>
+    <path d="M356 246 l28 -8" stroke="#4b8a24" stroke-width="5" stroke-linecap="round"/>
+    <rect x="348" y="224" width="10" height="34" rx="5" fill="#75450d"/>
+    <path d="M344 224 l28 6 q4 6 0 8 l-28 6 q-6 -2 -2 -10 Z" fill="#e09e19"/>
+  </g>
+
+  <!-- Ground line -->
+  <path d="M40 392 Q140 378 240 384 Q360 392 470 382 Q510 380 540 384" fill="none" stroke="#8cce54" stroke-width="6" stroke-linecap="round"/>
+</svg>
