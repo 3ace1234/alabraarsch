@@ -1,388 +1,331 @@
-Certainly. I’ll rewrite the **client story itself**, making the school's identity broader: **Islamic education + Nigerian/Western academic education + digital literacy + practical soft skills**. This will make the school feel more like a modern 21st-century institution rather than simply an Islamic version of a conventional school.
+# AL-FALAAH COLOR SYSTEM — IMPLEMENTATION PROMPT
 
-# 🏫 CLIENT STORY — AL-FALAAH NURSERY, PRIMARY & SECONDARY SCHOOL
+Redesign the existing Al-Falaah Nursery, Primary & Secondary School website using the following **controlled color system**.
 
-## Client
+The goal is to create a website that feels **custom-designed, premium, modern, warm, trustworthy, and distinctly Islamic**, while still looking like a serious contemporary educational institution.
 
-**Name:** Alhaji Abdulrahman Ibrahim
-**Position:** Proprietor / Director
-**School:** **Al-Falaah Nursery, Primary & Secondary School**
-**Location:** Ilorin, Kwara State, Nigeria
+Do **not** make the website look like a generic “Islamic green and gold” template. The colors must be used with restraint and hierarchy.
 
----
+## 1. CORE COLOR PALETTE
 
-## My Story as the School Owner
+Define these as global CSS custom properties:
 
-> **Assalamu Alaikum.**
->
-> My name is Abdulrahman Ibrahim, and I am the proprietor of **Al-Falaah Nursery, Primary & Secondary School**, a private school located in Ilorin, Kwara State, Nigeria.
->
-> Al-Falaah was established with a clear purpose: **to raise knowledgeable, confident, skilled and morally upright young people who are prepared for both this world and the Hereafter.**
->
-> We believe that education should go beyond simply preparing a child to pass examinations.
->
-> A child needs sound academic knowledge, a strong Islamic foundation, practical digital skills, good communication, confidence, discipline and the ability to solve problems and work effectively with others.
->
-> This is the philosophy behind Al-Falaah.
->
-> Our school combines **Islamic education, conventional academic education, digital literacy and practical soft-skills development** within one learning environment.
->
-> We want our students to understand the Qur'an and their religion, perform well academically, understand the world around them, use technology responsibly and develop the personal skills they need to succeed in life.
->
-> We currently provide education from the **Nursery level through Primary and Secondary school**, and our goal is to continue developing a learning environment where students can grow intellectually, spiritually, socially and practically.
->
-> However, although our physical school has continued to grow, our online presence does not yet reflect who we are.
->
-> Most of our communication with parents currently happens through WhatsApp, phone calls, printed notices and physical meetings. As the school grows, this is becoming increasingly difficult to manage.
->
-> Parents often ask us:
->
-> *"What classes do you offer?"*
->
-> *"What subjects do you teach?"*
->
-> *"How does your Islamic education programme work?"*
->
-> *"Do you teach computer skills?"*
->
-> *"What kind of extracurricular activities do you have?"*
->
-> *"Who are your teachers?"*
->
-> *"When does admission begin?"*
->
-> *"How can I check my child's result?"*
->
-> *"How can I contact the school if I have a complaint?"*
->
-> I want the new website to answer these questions clearly and professionally.
->
-> More importantly, I want the website to communicate what makes **Al-Falaah different**.
->
-> We are not simply an Islamic school that teaches the conventional curriculum.
->
-> We want to develop students who are **grounded in their faith, academically competent, digitally literate, socially responsible and equipped with useful life skills.**
->
-> When a parent visits our website, I want them to immediately understand our philosophy and think:
->
-> **"This is a school that is preparing my child for the future without compromising their Islamic values."**
+```css
+--color-primary: #0B4535;        /* Al-Falaah Forest */
+--color-primary-dark: #06352A;   /* Al-Falaah Deep */
+--color-accent: #C6A24A;         /* Olive Gold */
+--color-accent-light: #D8B65A;   /* Warm Gold */
+
+--color-background: #F7F4EA;     /* Warm Ivory */
+--color-surface: #FFFFFF;        /* White */
+
+--color-text: #18231F;           /* Ink Charcoal */
+--color-text-muted: #5D6B64;     /* Slate Green */
+
+--color-soft-green: #E7EEE9;     /* Soft Sage */
+--color-soft-warm: #EEE7D5;      /* Sand */
+--color-border: #DDE3DE;         /* Border Mist */
+```
+
+Use these colors consistently throughout the entire website.
+
+Do not introduce random additional colors unless required for accessibility, system states, or genuine UI feedback such as success, warning, or error.
 
 ---
 
-# Our Educational Philosophy
+## 2. COLOR HIERARCHY
 
-At Al-Falaah, we believe that a complete education should develop **the whole child**.
+Follow approximately this visual distribution:
 
-Our educational approach is built around **four major pillars**.
+**60% — Neutral backgrounds**
 
-### 1. Islamic Education
+* Warm Ivory
+* White
 
-We want students to develop a strong understanding of Islam and good character.
+**30% — Green family**
 
-This may include:
+* Forest Green
+* Deep Green
+* Soft Sage
 
-* Qur'an reading
-* Qur'an memorization
-* Tajweed
-* Hadith
-* Aqeedah
-* Fiqh
-* Seerah
-* Islamic history
-* Adab and manners
-* Daily Islamic practices
+**10% — Gold accents**
 
-Our aim is not simply to teach students Islamic information but to encourage them to apply good Islamic values in their daily lives.
+* Olive Gold
+* Warm Gold
+
+The gold must remain an **accent**, not a dominant color.
 
 ---
 
-### 2. Academic Education
+## 3. HOW EACH COLOR SHOULD BE USED
 
-Students also receive a strong conventional academic education based on the appropriate Nigerian curriculum and the requirements of their educational level.
+### Forest Green — `#0B4535`
 
-Depending on the class, subjects may include:
+Use as the primary Al-Falaah brand color for:
 
-* Mathematics
-* English Language
-* Basic Science
-* Social Studies
-* Computer Studies
-* Civic Education
-* Agricultural Science
-* Biology
-* Chemistry
-* Physics
-* Economics
-* Literature
-* Government
-* Geography
+* primary buttons
+* important headings
+* active navigation
+* links
+* icons
+* section accents
+* highlighted UI elements
 
-The exact subjects offered should depend on the student's level and the school's approved curriculum.
+### Deep Green — `#06352A`
+
+Use for:
+
+* footer
+* dark CTA sections
+* selected dark backgrounds
+* portal sidebars
+* hero overlays
+* strong brand sections
+
+### Olive Gold — `#C6A24A`
+
+Use sparingly for:
+
+* small decorative details
+* section accent lines
+* important highlights
+* icons
+* numbers
+* selected indicators
+* primary CTA backgrounds where appropriate
+
+### Warm Gold — `#D8B65A`
+
+Use mainly for:
+
+* hover states
+* subtle highlights
+* interactive accents
+* decorative details
+
+Do not use gold for large areas simply because the website is Islamic.
+
+### Warm Ivory — `#F7F4EA`
+
+Use as the main soft background for:
+
+* major content sections
+* About sections
+* Academic sections
+* page backgrounds
+* alternating sections
+
+### White — `#FFFFFF`
+
+Use for:
+
+* navigation
+* cards
+* forms
+* content surfaces
+* dashboard panels
+* clean visual areas
+
+### Ink Charcoal — `#18231F`
+
+Use primarily for:
+
+* body text
+* navigation text
+* headings where appropriate
+* labels
+* readable content
+
+Avoid using pure black `#000000` as the default text color.
+
+### Slate Green — `#5D6B64`
+
+Use for:
+
+* secondary text
+* descriptions
+* metadata
+* dates
+* breadcrumbs
+* supporting information
+
+### Soft Sage — `#E7EEE9`
+
+Use for:
+
+* subtle backgrounds
+* feature blocks
+* educational pillar sections
+* cards
+* information panels
+
+### Sand — `#EEE7D5`
+
+Use occasionally to introduce a warm secondary tone into selected sections.
+
+### Border Mist — `#DDE3DE`
+
+Use for:
+
+* card borders
+* dividers
+* form borders
+* table borders
+* subtle UI separation
 
 ---
 
-### 3. Digital Literacy
+## 4. IMPORTANT DESIGN RULES
 
-Technology is now an important part of education and everyday life.
+Do NOT:
 
-We therefore want our students to develop **practical digital literacy skills** from an appropriate age.
+* make every section green
+* make every section white
+* use gold everywhere
+* use green and gold together on every component
+* use gradients unnecessarily
+* introduce random colors for individual sections
+* use pure black everywhere
+* create rainbow-colored cards
+* give every educational pillar a completely different color
+* use color simply to make a section “interesting”
 
-This may include:
-
-* Computer fundamentals
-* Keyboard and mouse skills
-* Word processing
-* Internet literacy
-* Digital research
-* Presentation skills
-* Basic coding/programming
-* Digital creativity
-* Online safety
-* Responsible use of technology
-* Digital communication
-* Introduction to modern digital tools
-
-The goal is not simply to teach children how to use computers.
-
-We want them to understand **how to use technology productively, responsibly and creatively.**
+The website should feel **calm, intentional and professionally art-directed**.
 
 ---
 
-### 4. Soft Skills & Life Skills
+## 5. SECTION COLOR RHYTHM
 
-We also believe that academic grades alone do not determine a student's future.
+Create visual rhythm by alternating neutral and branded sections.
 
-Students need practical personal and interpersonal skills.
+Example:
 
-Our soft-skills development may include:
+```text
+Hero
+→ Dark Green / Photography
 
-* Communication
-* Public speaking
-* Leadership
-* Teamwork
-* Critical thinking
-* Problem-solving
-* Creativity
-* Time management
-* Confidence
-* Emotional awareness
-* Decision-making
-* Collaboration
-* Presentation skills
-* Personal responsibility
-* Entrepreneurship awareness
+Feature Strip
+→ White
 
-These skills should be introduced progressively according to the student's age and level.
+About
+→ Warm Ivory
+
+Educational Pillars
+→ White + Soft Sage accents
+
+Academics
+→ Warm Ivory
+
+Digital Literacy
+→ Soft Sage + Green
+
+Student Life
+→ White
+
+Admissions CTA
+→ Deep Green
+
+Footer
+→ Deep Green
+```
+
+Do not use this exact sequence mechanically on every page. Adapt the rhythm to each page's content.
 
 ---
 
-# Our Vision
+## 6. BUTTON COLOR SYSTEM
 
-> **To nurture knowledgeable, morally upright, digitally literate and confident young people who are prepared to positively contribute to their families, communities and society.**
+### Primary button
 
-# Our Mission
+```text
+Background: #0B4535
+Text: #FFFFFF
+Hover: #06352A
+```
 
-> **To provide quality academic and Islamic education while equipping students with digital literacy, practical soft skills and strong character for lifelong learning and responsible living.**
+### Gold CTA
+
+Use selectively for high-priority actions:
+
+```text
+Background: #C6A24A
+Text: #06352A
+Hover: #D8B65A
+```
+
+### Secondary button
+
+```text
+Background: transparent
+Border: #0B4535
+Text: #0B4535
+Hover: #0B4535
+Hover text: #FFFFFF
+```
+
+Buttons must have clear hover and keyboard-focus states.
 
 ---
 
-# What Makes Al-Falaah Different?
+## 7. DARK SECTIONS
 
-We want the website to clearly communicate that our approach goes beyond the traditional idea of schooling.
+For sections with a Deep Green background:
 
-A student at Al-Falaah should have the opportunity to develop across several areas:
+```text
+Background: #06352A
+Heading: #FFFFFF
+Body: #E7EEE9
+Accent: #D8B65A
+Primary CTA: #C6A24A
+```
+
+Use these sections strategically for:
+
+* major calls to action
+* admissions
+* footer
+* important school messages
+
+---
+
+## 8. BRAND FEEL
+
+The final color treatment should communicate:
 
 **Faith**
+→ Deep Green
 
-↓
+**Academic excellence**
+→ Structured Green + Ivory
 
-**Academic Knowledge**
+**Warmth**
+→ Ivory + Sand
 
-↓
+**Modernity**
+→ Clean White + restrained Green
 
-**Digital Skills**
+**Future & opportunity**
+→ Gold accents
 
-↓
+**Trust**
+→ Deep Green + Charcoal
 
-**Communication & Soft Skills**
-
-↓
-
-**Character**
-
-↓
-
-**Confidence**
-
-↓
-
-**Responsible Citizenship**
-
-Our goal is to produce students who can sit confidently in a classroom, understand their religion, perform academically, use technology effectively, communicate with others and face real-life challenges with good character.
+The result should feel like a **professionally designed Nigerian Islamic school brand**, not a pre-built template.
 
 ---
 
-# Our Educational Model
+## 9. FINAL INSTRUCTION
 
-The school can be presented around four simple educational pillars:
+Treat the color palette as a **design system**, not a list of colors.
 
-| Pillar                  | What We Develop                                          |
-| ----------------------- | -------------------------------------------------------- |
-| **Islamic Education**   | Faith, Qur'an, Islamic knowledge & character             |
-| **Academic Excellence** | Knowledge, literacy, numeracy & examination preparation  |
-| **Digital Literacy**    | Technology, digital creativity & responsible digital use |
-| **Soft Skills**         | Communication, leadership, teamwork & problem-solving    |
+Every color must have a purpose.
 
-This should become an important part of the school's visual identity on the website.
+Prioritize **hierarchy, contrast, whitespace and composition** over excessive decoration.
 
----
+When redesigning existing pages, preserve the existing content and functionality while systematically replacing inconsistent colors with this Al-Falaah palette.
 
-# Our Classes
+Do not redesign every component simply by changing its color. Use the palette together with spacing, typography, imagery, cards and layout to create a coherent visual identity.
 
-We currently cater for:
+**Target feeling:**
 
-### Nursery
-
-* Nursery 1
-* Nursery 2
-* Nursery 3
-
-### Primary
-
-* Primary 1
-* Primary 2
-* Primary 3
-* Primary 4
-* Primary 5
-* Primary 6
-
-### Secondary
-
-* JSS 1
-* JSS 2
-* JSS 3
-* SS 1
-* SS 2
-* SS 3
-
-The website should allow parents to explore what each level offers.
-
----
-
-# What I Want the Website to Achieve
-
-I don't want the website to simply tell people that our school exists.
-
-I want it to become the school's **digital front door and communication platform**.
-
-A prospective parent should be able to:
-
-**Discover the school**
-
-→ Understand our educational philosophy
-
-→ Explore our classes
-
-→ Learn about Islamic education
-
-→ Learn about our academic curriculum
-
-→ Discover our digital literacy programme
-
-→ Understand our soft-skills development
-
-→ Meet our teachers
-
-→ Explore our facilities
-
-→ See our activities and events
-
-→ Read parent reviews
-
-→ Learn about admission
-
-→ Apply online
-
-→ Contact the school
-
-An existing parent should be able to:
-
-**Log in**
-
-→ Select their child
-
-→ Check academic results
-
-→ View attendance
-
-→ View timetable
-
-→ Read announcements
-
-→ See upcoming events
-
-→ Receive important school information
-
-A teacher should be able to:
-
-**Log in**
-
-→ View assigned classes
-
-→ Record attendance
-
-→ Enter results
-
-→ Submit results for approval
-
-→ View timetable
-
-→ Receive school announcements
-
-And the school administration should be able to:
-
-**Log in**
-
-→ Manage students
-
-→ Manage parents
-
-→ Manage teachers
-
-→ Manage classes
-
-→ Manage subjects
-
-→ Manage results
-
-→ Manage admissions
-
-→ Manage attendance
-
-→ Manage events
-
-→ Publish announcements
-
-→ Manage reviews
-
-→ Manage complaints
-
-→ Manage website content
-
----
-
-# The Website Should Represent Our Future
-
-We are building Al-Falaah for the future.
-
-That means our website should not feel like a basic school brochure.
-
-It should communicate:
-
-> **Islamic values. Academic excellence. Digital readiness. Practical skills. Strong character.**
-
-I want a modern website that shows parents that their children can receive a **well-rounded education** in an environment where faith, knowledge, technology and personal development are not treated as separate things.
-
-The final experience should leave parents with one clear impression:
-
-> **"Al-Falaah is preparing my child not only for the next examination, but for the world they will live in."**
+> Elegant. Academic. Warm. Islamic. Modern. Trustworthy. Distinctly Al-Falaah.

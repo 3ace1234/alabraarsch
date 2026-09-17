@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Al-Falaah Nursery, Primary & Secondary School, Ilorin — Islamic values, academic excellence, digital literacy and practical soft skills for the 21st-century learner.">
   <title>Al-Falaah School — Raising Knowledgeable, Confident & Morally Upright Young People</title>
+  <link rel="icon" type="image/jpeg" href="assets/img/myfav.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -32,17 +33,9 @@
       <div class="container navbar__inner">
         <a class="brand" href="index.html" aria-label="Al-Falaah home">
           <span class="brand__mark">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/>
-              <path d="M22 10v6"/>
-              <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>
-              <path d="M12 15.5v3"/>
-            </svg>
+            <img src="assets/img/myfav.jpg" alt="Al-Falaah School logo" width="1024" height="1024">
           </span>
-          <span class="brand__text">
-            <strong>Al-Falaah <span class="brand__arabic">الفلاح</span></strong>
-            <span class="brand__tag">Nursery &bull; Primary &bull; Secondary</span>
-          </span>
+          <span class="brand__text"><strong>Al-Falaah</strong></span>
         </a>
 
         <nav class="nav" id="nav" aria-label="Main navigation">
@@ -68,59 +61,44 @@
 
   <main>
     <!-- ================= HERO ================= -->
-    <section class="hero">
-      <div class="hero__pattern" aria-hidden="true"></div>
+<section class="hero">
+      <div class="hero__slider" aria-hidden="true">
+        <div class="hero__slide is-active" style="background-image:url('assets/img/hero1.png');"></div>
+        <div class="hero__slide" style="background-image:url('assets/img/hero2.jpg');"></div>
+        <div class="hero__slide" style="background-image:url('assets/img/hero3.jpg');"></div>
+      </div>
+      <div class="hero__overlay" aria-hidden="true"></div>
       <div class="container hero__inner">
         <div class="hero__text">
           <h1 class="hero__title">Preparing your child for <span class="accent">the future</span> without compromising Islamic values.</h1>
           <p class="hero__lead">At Al-Falaah Nursery, Primary &amp; Secondary School (Ilorin), we combine Qur'an-based Islamic education, the Nigerian academic curriculum, digital literacy and practical soft skills — so every child grows in faith, knowledge, confidence and character.</p>
           <div class="hero__actions">
             <a class="btn btn--primary" href="admissions.html#apply"><i data-lucide="graduation-cap"></i> Apply for Admission</a>
-            <a class="btn btn--ghost" href="academics.html">Explore Our School <i data-lucide="arrow-right"></i></a>
-          </div>
-          <div class="hero__values">
-            <span class="chip">Qur'an &amp; Islamic Studies</span>
-            <span class="chip">Nigerian Curriculum</span>
-            <span class="chip">Computer &amp; Coding</span>
-            <span class="chip">Leadership &amp; Public Speaking</span>
-          </div>
-        </div>
-
-        <div class="hero__media">
-          <div class="frame">
-            <img src="assets/img/hero-illustration.svg" alt="Flat illustration of the Al-Falaah school campus with children, trees and a green roof">
-          </div>
-          <div class="badge-float badge-float--a">
-            <span class="badge-float__icon"><i data-lucide="book-open"></i></span>
-            <span><strong>4 Pillars</strong><span>Faith &bull; Mind &bull; Tech &bull; Life</span></span>
-          </div>
-          <div class="badge-float badge-float--b">
-            <span class="badge-float__icon"><i data-lucide="badge-check"></i></span>
-            <span><strong>Whole-child</strong><span>Academics + Character</span></span>
+            <a class="btn btn--ghost-white" href="academics.html">Explore Our School <i data-lucide="arrow-right"></i></a>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ================= MARQUEE ================= -->
-    <div class="marquee" aria-hidden="true">
+    <!-- <div class="marquee" aria-hidden="true">
       <div class="marquee__track">
         <span>Islamic Education <span class="dot">&bull;</span> Academic Excellence <span class="dot">&bull;</span> Digital Literacy <span class="dot">&bull;</span> Soft &amp; Life Skills <span class="dot">&bull;</span> Strong Character <span class="dot">&bull;</span> Confident Communication <span class="dot">&bull;</span> Responsible Citizenship <span class="dot">&bull;</span> </span>
         <span>Islamic Education <span class="dot">&bull;</span> Academic Excellence <span class="dot">&bull;</span> Digital Literacy <span class="dot">&bull;</span> Soft &amp; Life Skills <span class="dot">&bull;</span> Strong Character <span class="dot">&bull;</span> Confident Communication <span class="dot">&bull;</span> Responsible Citizenship <span class="dot">&bull;</span> </span>
       </div>
-    </div>
+    </div> -->
 
     <!-- ================= WELCOME ================= -->
     <section class="section">
       <div class="container grid grid--split">
-        <div class="grid__media reveal">
+        <div class="grid__media reveal grid__media--fill">
           <div class="frame">
-            <img src="assets/img/learning-illustration.svg" alt="Illustration of a digital literacy class at Al-Falaah">
+            <img src="assets/img/hero1.png" alt="Illustration of a digital literacy class at Al-Falaah">
           </div>
-          <div class="badge-float" style="bottom:22px;left:22px;">
+          <!-- <div class="badge-float" style="bottom:22px;left:22px;">
             <span class="badge-float__icon"><i data-lucide="laptop"></i></span>
             <span><strong>Digital Literacy</strong><span>From Nursery to SS 3</span></span>
-          </div>
+          </div> -->
         </div>
         <div class="grid__content">
           <div class="section-head reveal">
@@ -152,8 +130,7 @@
 
         <div class="grid grid--4">
           <article class="pillar reveal">
-            <span class="pillar__num">01</span>
-            <div class="pillar__head">
+                        <div class="pillar__head">
               <span class="pillar__icon"><i data-lucide="moon-star"></i></span>
               <h3>Islamic Education</h3>
             </div>
@@ -167,8 +144,7 @@
           </article>
 
           <article class="pillar reveal" data-delay="100">
-            <span class="pillar__num">02</span>
-            <div class="pillar__head">
+                        <div class="pillar__head">
               <span class="pillar__icon"><i data-lucide="graduation-cap"></i></span>
               <h3>Academic Excellence</h3>
             </div>
@@ -182,8 +158,7 @@
           </article>
 
           <article class="pillar reveal" data-delay="200">
-            <span class="pillar__num">03</span>
-            <div class="pillar__head">
+                        <div class="pillar__head">
               <span class="pillar__icon"><i data-lucide="laptop"></i></span>
               <h3>Digital Literacy</h3>
             </div>
@@ -197,8 +172,7 @@
           </article>
 
           <article class="pillar pillar--gold reveal" data-delay="300">
-            <span class="pillar__num">04</span>
-            <div class="pillar__head">
+                        <div class="pillar__head">
               <span class="pillar__icon"><i data-lucide="sparkles"></i></span>
               <h3>Soft &amp; Life Skills</h3>
             </div>
@@ -234,7 +208,7 @@
           <div class="journey__item"><span class="ji-index">4</span><span class="ji-icon"><i data-lucide="messages-square"></i></span><div><strong>Communication &amp; Soft Skills</strong><span>Speaking, leading, collaborating</span></div></div>
           <div class="journey__item"><span class="ji-index">5</span><span class="ji-icon"><i data-lucide="shield-check"></i></span><div><strong>Character</strong><span>Adab, discipline and integrity</span></div></div>
           <div class="journey__item"><span class="ji-index">6</span><span class="ji-icon"><i data-lucide="trophy"></i></span><div><strong>Confidence</strong><span>Ready to face challenges head-on</span></div></div>
-          <div class="journey__item"><span class="ji-index">7</span><span class="ji-icon"><i data-lucide="hands-praying"></i></span><div><strong>Responsible Citizenship</strong><span>Positive contribution to community &amp; society</span></div></div>
+          <div class="journey__item"><span class="ji-index">7</span><span class="ji-icon"><i data-lucide="heart-handshake"></i></span><div><strong>Responsible Citizenship</strong><span>Positive contribution to community &amp; society</span></div></div>
         </div>
       </div>
     </section>
@@ -291,7 +265,7 @@
                 </div>
                 <h4>Starting early matters</h4>
                 <p>A nurturing environment where your child's love for learning begins — guided by qualified, caring teachers.</p>
-                <a class="btn btn--primary btn--sm" href="admissions.html#apply">Enrol for Nursery <i data-lucide="arrow-right"></i></a>
+                <a class="btn btn--primary" href="admissions.html#apply">Enrol for Nursery <i data-lucide="arrow-right"></i></a>
               </div>
             </div>
           </div>
@@ -340,6 +314,14 @@
                   <li><i data-lucide="check"></i> Character &amp; soft-skills boost</li>
                 </ul>
               </article>
+              <div class="class-card class-card--cta reveal" data-delay="300">
+                <div class="class-card__top">
+                  <span class="class-card__icon"><i data-lucide="users"></i></span>
+                </div>
+                <h4>Strong foundations, bright future</h4>
+                <p>The primary years build the reading, maths and character habits children carry into secondary — and beyond.</p>
+                <a class="btn btn--primary" href="admissions.html#apply">Enrol for Primary <i data-lucide="arrow-right"></i></a>
+              </div>
             </div>
           </div>
 
@@ -387,6 +369,14 @@
                   <li><i data-lucide="check"></i> Leadership &amp; mentorship</li>
                 </ul>
               </article>
+              <div class="class-card class-card--cta reveal" data-delay="300">
+                <div class="class-card__top">
+                  <span class="class-card__icon"><i data-lucide="graduation-cap"></i></span>
+                </div>
+                <h4>Prepare for what comes next</h4>
+                <p>A broad, exam-ready pathway with structured mentoring to excel in WAEC / NECO and thrive after school.</p>
+                <a class="btn btn--primary" href="admissions.html#apply">Enrol for Secondary <i data-lucide="arrow-right"></i></a>
+              </div>
             </div>
           </div>
         </div>
@@ -415,9 +405,9 @@
             <li><i data-lucide="clock"></i><span><strong>Time management</strong><br>Order, focus &amp; readiness</span></li>
           </div>
         </div>
-        <div class="grid__media reveal" data-delay="100">
+        <div class="grid__media reveal grid__media--fill" data-delay="100">
           <div class="frame">
-            <img src="assets/img/learning-illustration.svg" alt="Illustration of a digital literacy class with a teacher and student">
+            <img src="assets/img/ghy.jpg" alt="Illustration of a digital literacy class with a teacher and student">
           </div>
         </div>
       </div>
@@ -575,16 +565,11 @@
     <div class="container">
       <div class="footer__grid">
         <div class="footer__col footer__brand">
-          <a class="brand" href="index.html">
+          <a class="brand" href="index.html" aria-label="Al-Falaah home">
             <span class="brand__mark">
-              <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/>
-                <path d="M22 10v6"/>
-                <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>
-                <path d="M12 15.5v3"/>
-              </svg>
+              <img src="assets/img/myfav.jpg" alt="Al-Falaah School logo" width="1024" height="1024">
             </span>
-            <span class="brand__text"><strong style="color:#fff">Al-Falaah <span class="brand__arabic">الفلاح</span></strong><span class="brand__tag">Nursery &bull; Primary &bull; Secondary</span></span>
+            <span class="brand__text"><strong style="color:#fff">Al-Falaah</strong></span>
           </a>
           <p>Islamic education, academic excellence, digital literacy and practical soft skills — all in one nurturing environment, grounded in faith and prepared for the future.</p>
           <div class="footer__social">
@@ -628,15 +613,14 @@
             <input type="email" placeholder="Email for school updates" aria-label="Email address" required>
             <button type="submit" aria-label="Subscribe"><i data-lucide="send"></i></button>
           </form>
-          <p class="newsletter-msg" style="font-size:.82rem;color:var(--gold-300);margin-top:10px;min-height:1.2em"></p>
+          <p class="newsletter-msg" style="font-size:.82rem;color:var(--color-accent-light);margin-top:10px;min-height:1.2em"></p>
         </div>
       </div>
     </div>
 
     <div class="footer__bottom">
       <div class="container">
-        <span>&copy; <span id="year">2026</span> Al-Falaah Nursery, Primary &amp; Secondary School. All rights reserved.</span>
-        <span><span class="arabic">الفلاح</span> &mdash; knowledge, faith, technology &amp; character</span>
+        <span>&copy; <span id="year">2026</span> Al-Falaah School. All rights reserved. Developed by 3aceDesigns</span>
       </div>
     </div>
   </footer>

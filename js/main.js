@@ -23,7 +23,29 @@
     initNewsletter();
     initBackToTop();
     initActiveLink();
+    initHeroSlider();
+    initPillarHover();
   });
+
+  /* ---------- Pillar top-line reveal ---------- */
+  function initPillarHover() {
+    document.querySelectorAll(".pillar").forEach(function (card) {
+      card.addEventListener("mouseenter", function () { card.classList.add("is-hover"); });
+      card.addEventListener("mouseleave", function () { card.classList.remove("is-hover"); });
+    });
+  }
+
+  /* ---------- Hero background slider ---------- */
+  function initHeroSlider() {
+    var slides = document.querySelectorAll(".hero__slide");
+    if (slides.length < 2) return;
+    var current = 0;
+    setInterval(function () {
+      slides[current].classList.remove("is-active");
+      current = (current + 1) % slides.length;
+      slides[current].classList.add("is-active");
+    }, 5000);
+  }
 
   /* ---------- Header scroll state ---------- */
   function initHeader() {
