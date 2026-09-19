@@ -305,11 +305,18 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   position: absolute; inset: 0; opacity: 0;
   background-size: cover; background-position: center;
   transition: opacity 1s ease-in-out;
+  will-change: transform, opacity;
 }
-.hero__slide.is-active { opacity: 1; }
+.hero__slide.is-active { opacity: 1; animation: heroZoom 9s ease-out forwards; }
+@keyframes heroZoom {
+  from { transform: scale(1); }
+  to   { transform: scale(1.08); }
+}
 .hero__overlay {
   position: absolute; inset: 0; z-index: 1;
-  background: linear-gradient(180deg, rgba(6,53,42,.78) 0%, rgba(6,53,42,.34) 42%, rgba(24,35,31,.82) 100%);
+  background:
+    radial-gradient(90% 72% at 50% 45%, rgba(6,53,42,.75) 0%, rgba(6,53,42,.55) 40%, rgba(6,53,42,.92) 100%),
+    linear-gradient(180deg, rgba(6,53,42,.82) 0%, rgba(11,69,53,.62) 50%, rgba(12,20,17,.95) 100%);
 }
 .hero__inner {
   position: relative; z-index: 2; width: 100%;
@@ -318,13 +325,14 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .hero__title {
   font-size: var(--text-display); line-height: 1.05; margin-bottom: 20px; color: #fff;
+  text-shadow: 0 2px 32px rgba(6,53,42,.55);
 }
 .hero__title .accent { color: var(--color-accent-light); position: relative; }
 .hero__title .accent::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 4px; height: 10px;
   background: var(--color-accent); z-index: -1; border-radius: 4px;
 }
-.hero__lead { color: rgba(255,255,255,.88); font-size: 1.1rem; max-width: 640px; margin-inline: auto; margin-bottom: 30px; }
+.hero__lead { color: rgba(255,255,255,.9); font-size: 1.1rem; max-width: 640px; margin-inline: auto; margin-bottom: 30px; text-shadow: 0 1px 14px rgba(6,53,42,.5); }
 .hero__actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 34px; justify-content: center; }
 
 .hero__values { display: flex; flex-wrap: wrap; gap: 10px; }
