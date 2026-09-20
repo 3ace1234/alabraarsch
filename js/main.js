@@ -14,9 +14,11 @@
   document.addEventListener("DOMContentLoaded", function () {
     initHeader();
     initNav();
+    initLoginDropdown();
     initReveal();
     initCounters();
     initTabs();
+    initHashTab();
     initAccordion();
     initSlider();
     initForms();
@@ -73,6 +75,49 @@
         nav.classList.remove("is-open");
         toggle.classList.remove("is-open");
       });
+    });
+  }
+
+  /* ---------- Portal login dropdown ---------- */
+  function initLoginDropdown() {
+    var wraps = document.querySelectorAll("[data-dropdown]");
+    if (!wraps.length) return;
+    function close(wrap) {
+      wrap.classList.remove("is-open");
+      var t = wrap.querySelector("[data-dropdown-toggle]");
+      if (t) t.setAttribute("aria-expanded", "false");
+    }
+    wraps.forEach(function (wrap) {
+      var toggle = wrap.querySelector("[data-dropdown-toggle]");
+      if (!toggle) return;
+      toggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var open = wrap.classList.toggle("is-open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      wrap.querySelectorAll("a").forEach(function (link) { link.addEventListener("click", function () { close(wrap); }); });
+    });
+    document.addEventListener("click", function (e) {
+      wraps.forEach(function (wrap) {
+        if (wrap.classList.contains("is-open") && !wrap.contains(e.target)) close(wrap);
+      });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") wraps.forEach(function (wrap) { if (wrap.classList.contains("is-open")) close(wrap); });
+    });
+  }
+
+  /* ---------- Activate a tab from URL hash (e.g. portal.html#panelParent) ---------- */
+  function initHashTab() {
+    var hash = window.location.hash;
+    if (!hash) return;
+    var target = document.getElementById(hash.slice(1));
+    if (!target) return;
+    var wrap = target.closest("[data-tabs]");
+    if (!wrap) return;
+    var btnSel = wrap.getAttribute("data-tabs") || ".tab-btn";
+    wrap.querySelectorAll(btnSel).forEach(function (b) {
+      if (b.getAttribute("data-target") === hash.slice(1)) b.click();
     });
   }
 

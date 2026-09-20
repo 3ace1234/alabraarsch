@@ -10,25 +10,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
 
   <!-- ================= HEADER ================= -->
   <header class="site-header" id="siteHeader">
-    <div class="topbar">
-      <div class="container topbar__inner">
-        <div class="topbar__contact">
-          <a href="tel:+2348030000000"><i data-lucide="phone"></i> +234 803 000 0000</a>
-          <a href="mailto:info@alfalaah.edu.ng"><i data-lucide="mail"></i> info@alfalaah.edu.ng</a>
-          <span class="topbar__loc"><i data-lucide="map-pin"></i> Ilorin, Kwara State, Nigeria</span>
-        </div>
-        <div class="topbar__links">
-          <a href="portal.html"><i data-lucide="log-in"></i> Parent / Student Portal</a>
-        </div>
-      </div>
-    </div>
-
     <div class="navbar">
       <div class="container navbar__inner">
         <a class="brand" href="index.html" aria-label="Al-Falaah home">
@@ -47,6 +34,15 @@
             <li><a class="nav__link" href="contact.html">Contact</a></li>
           </ul>
           <div class="nav__cta">
+            <div class="login-wrap" data-dropdown>
+              <button class="btn btn--ghost btn--login" type="button" aria-haspopup="true" aria-expanded="false" data-dropdown-toggle>
+                <i data-lucide="user"></i> Login <i data-lucide="chevron-down" class="caret"></i>
+              </button>
+              <div class="login-menu" role="menu" aria-label="Portal login">
+                <a class="login-menu__item" href="portal.html#panelParent" role="menuitem"><i data-lucide="users"></i> Student / Parent</a>
+                <a class="login-menu__item" href="portal.html#panelTeacher" role="menuitem"><i data-lucide="briefcase"></i> Staff</a>
+              </div>
+            </div>
             <a class="btn btn--brand" href="admissions.html#apply"><i data-lucide="graduation-cap"></i> Apply Now</a>
           </div>
         </nav>
@@ -324,6 +320,6 @@
   <button class="to-top" id="toTop" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/main.js?v=2"></script>
+  <script src="js/main.js?v=3"></script>
 </body>
 </html>
