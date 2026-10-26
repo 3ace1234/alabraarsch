@@ -133,6 +133,16 @@ await fetch(`${API}/notifications/read-all`, {
 The frontend must treat `401 unauthenticated` as "return to
 `frontend/portal.html`". The API never issues an HTML redirect.
 
+### Frontend connection
+
+`frontend/js/api.js` wraps these calls and defaults the API base URL to
+`../backend/public/api` relative to the page. To host the API elsewhere, set
+`window.ALFALAAH_API_BASE` before loading the script. The client bootstraps
+`/session`, keeps the CSRF token in memory, retries one write after
+`403 csrf_failed`, and redirects to `frontend/portal.html` when a session
+expires. The login forms use `data-login-form` so the public-site script does
+not intercept them.
+
 ### CORS
 
 `CORS_ALLOWED_ORIGINS` is a comma-separated list of exact origins. The local

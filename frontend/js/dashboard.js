@@ -1,8 +1,7 @@
 /* ============================================================
-   AL-FALAAH — PORTAL DASHBOARD (design preview)
-   Vanilla JS, no build step. All data below is fictional and
-   exists only to demonstrate the interface. Replace with API
-   responses when the backend is connected.
+   AL-FALAAH — PORTAL DASHBOARD
+   Vanilla JS, no build step. Every record rendered here comes
+   from the authenticated JSON API; nothing is hard-coded.
    ============================================================ */
 (function () {
   "use strict";
@@ -19,7 +18,7 @@
   }
 
   function money(amount) {
-    return "\u20A6" + Number(amount).toLocaleString("en-NG");
+    return "\u20A6" + asNumber(amount).toLocaleString("en-NG");
   }
 
   function ordinal(n) {
@@ -43,368 +42,66 @@
     return { start: parts[0] || time, end: parts[1] || "" };
   }
 
-  function gradeFor(total) {
-    if (total >= 85) return { grade: "A", remark: "Excellent" };
-    if (total >= 75) return { grade: "A", remark: "Very good" };
-    if (total >= 70) return { grade: "A", remark: "Good" };
-    if (total >= 60) return { grade: "B", remark: "Credit" };
-    if (total >= 50) return { grade: "C", remark: "Pass" };
-    if (total >= 45) return { grade: "D", remark: "Fair" };
-    if (total >= 40) return { grade: "E", remark: "Weak" };
-    return { grade: "F", remark: "Needs improvement" };
-  }
-
-  function makeResults(term, published, rows, position, classSize) {
-    var subjects = rows.map(function (row) {
-      var total = row[1] + row[2];
-      var grade = gradeFor(total);
-      return {
-        name: row[0], ca: row[1], exam: row[2], total: total,
-        grade: grade.grade, remark: grade.remark
-      };
-    });
-    var sum = subjects.reduce(function (acc, s) { return acc + s.total; }, 0);
-    return {
-      term: term,
-      published: published,
-      subjects: subjects,
-      average: sum / subjects.length,
-      position: position,
-      classSize: classSize
-    };
-  }
-
-  function roomFor(subject, klass) {
-    if (subject === "Computer Studies" || subject === "Basic Technology") return "ICT Lab";
-    if (subject === "Basic Science" || subject === "Agricultural Science") return "Science Lab";
-    if (subject === "Islamic Studies" || subject === "Arabic") return "Assembly Hall";
-    return klass;
-  }
-
-  function buildTimetable(subjectsByDay, klass) {
-    var periods = [
-      { label: "Period 1", time: "8:00 \u2013 8:40" },
-      { label: "Period 2", time: "8:40 \u2013 9:20" },
-      { label: "Period 3", time: "9:20 \u2013 10:00" },
-      { label: "Period 4", time: "10:20 \u2013 11:00" },
-      { label: "Period 5", time: "11:00 \u2013 11:40" },
-      { label: "Period 6", time: "12:20 \u2013 1:00" }
-    ];
-    var days = {};
-    Object.keys(subjectsByDay).forEach(function (day) {
-      days[day] = subjectsByDay[day].map(function (subject) {
-        return {
-          subject: subject,
-          teacher: TEACHERS[subject] || "Class teacher",
-          room: roomFor(subject, klass)
-        };
-      });
-    });
-    return { periods: periods, days: days };
-  }
-
   /* ============================================================
-     2. SCHOOL + CURRICULUM DATA
+     2. RUNTIME DATA
+     These structures are hydrated from the JSON API before the
+     dashboard renders. They are intentionally empty at load time so
+     no fictional record can ever be shown as school data.
      ============================================================ */
   var SCHOOL = {
-    session: "2026/2027",
-    term: "First Term",
-    week: "Week 8"
+    session: "",
+    term: "",
+    week: "",
+    label: ""
   };
 
-  var TEACHERS = {
-    "Mathematics": "Ustadh Sulaiman Bello",
-    "Further Mathematics": "Ustadh Sulaiman Bello",
-    "English Studies": "Mrs. Grace Adeyemi",
-    "Basic Science": "Mr. Tunde Ojo",
-    "Islamic Studies": "Ustadh Ibrahim Musa",
-    "Arabic": "Ustadh Abdulrahman Yusuf",
-    "Social Studies": "Mrs. Funke Balogun",
-    "Computer Studies": "Mr. Samuel Eze",
-    "Business Studies": "Mrs. Ngozi Okeke",
-    "Yoruba": "Mr. Adewale Ogunleye",
-    "Basic Technology": "Mr. Kunle Adebayo",
-    "Agricultural Science": "Mrs. Bola Ajayi",
-    "P.H.E.": "Coach Danjuma",
-    "Civic Education": "Mrs. Halima Sadiq",
-    "Creative Arts": "Ms. Amaka Nwosu",
-    "Library": "Mrs. F. Lawal"
-  };
+  var STUDENTS = {};
+  var ANNOUNCEMENTS = [];
 
-  var JUNIOR_DAYS = {
-    Monday: ["Mathematics", "English Studies", "Islamic Studies", "Basic Science", "Arabic", "Computer Studies"],
-    Tuesday: ["English Studies", "Mathematics", "Social Studies", "Business Studies", "Yoruba", "Basic Technology"],
-    Wednesday: ["Islamic Studies", "Basic Science", "Mathematics", "English Studies", "Computer Studies", "Arabic"],
-    Thursday: ["Mathematics", "English Studies", "Agricultural Science", "Social Studies", "Islamic Studies", "P.H.E."],
-    Friday: ["Arabic", "Islamic Studies", "Mathematics", "English Studies", "Civic Education", "Library"]
-  };
-
-  var PRIMARY_DAYS = {
-    Monday: ["English Studies", "Mathematics", "Basic Science", "Islamic Studies", "Arabic", "Creative Arts"],
-    Tuesday: ["Mathematics", "English Studies", "Social Studies", "Computer Studies", "Yoruba", "P.H.E."],
-    Wednesday: ["Islamic Studies", "Mathematics", "English Studies", "Basic Science", "Arabic", "Agricultural Science"],
-    Thursday: ["English Studies", "Mathematics", "Social Studies", "Computer Studies", "Islamic Studies", "Creative Arts"],
-    Friday: ["Arabic", "Islamic Studies", "Mathematics", "English Studies", "Civic Education", "Library"]
-  };
-
-  /* ============================================================
-     3. STUDENTS (sample records)
-     ============================================================ */
-  var STUDENTS = {
-    aisha: {
-      id: "stu-1001",
-      name: "Aisha Abdullahi",
-      initials: "AA",
-      klass: "JSS 2B",
-      level: "Junior Secondary",
-      admissionNo: "AF/2024/0187",
-      house: "Al-Farooq House",
-      formTeacher: "Ustadh Sulaiman Bello",
-      guardian: { name: "Mr. Ibrahim Abdullahi", relation: "Father", phone: "+234 803 000 0000" },
-      attendance: {
-        rate: 96,
-        days: 72,
-        present: 67,
-        absent: 3,
-        late: 2,
-        weeks: [
-          { label: "W1", value: 100 },
-          { label: "W2", value: 94 },
-          { label: "W3", value: 100 },
-          { label: "W4", value: 89 },
-          { label: "W5", value: 100 },
-          { label: "W6", value: 96 },
-          { label: "W7", value: 100 }
-        ],
-        recent: [
-          { date: "Fri, 23 Oct 2026", day: "Friday", status: "Present", tone: "ok", note: "Signed in at 7:52am" },
-          { date: "Thu, 22 Oct 2026", day: "Thursday", status: "Present", tone: "ok", note: "Signed in at 7:49am" },
-          { date: "Wed, 21 Oct 2026", day: "Wednesday", status: "Late", tone: "warn", note: "Arrived at 8:14am" },
-          { date: "Tue, 20 Oct 2026", day: "Tuesday", status: "Present", tone: "ok", note: "Signed in at 7:55am" },
-          { date: "Mon, 19 Oct 2026", day: "Monday", status: "Present", tone: "ok", note: "Signed in at 7:47am" },
-          { date: "Fri, 16 Oct 2026", day: "Friday", status: "Excused", tone: "info", note: "Medical appointment \u2014 guardian note received" },
-          { date: "Thu, 15 Oct 2026", day: "Thursday", status: "Present", tone: "ok", note: "Signed in at 7:50am" },
-          { date: "Wed, 14 Oct 2026", day: "Wednesday", status: "Present", tone: "ok", note: "Signed in at 7:56am" }
-        ]
-      },
-      results: makeResults("Third Term, 2025/2026", "18 Jul 2026", [
-        ["English Studies", 35, 53],
-        ["Mathematics", 37, 57],
-        ["Basic Science", 33, 49],
-        ["Islamic Studies", 36, 53],
-        ["Arabic", 35, 51],
-        ["Social Studies", 33, 47],
-        ["Computer Studies", 38, 52],
-        ["Business Studies", 29, 42],
-        ["Yoruba", 34, 48]
-      ], 3, 38),
-      timetable: buildTimetable(JUNIOR_DAYS, "JSS 2B"),
-      fees: {
-        term: "First Term 2026/2027",
-        total: 185000,
-        paid: 185000,
-        balance: 0,
-        dueDate: "30 Sep 2026",
-        invoices: [
-          { ref: "INV-26-0412", item: "Tuition (First Term)", date: "02 Sep 2026", amount: 120000, status: "Paid" },
-          { ref: "INV-26-0413", item: "Books & learning materials", date: "02 Sep 2026", amount: 35000, status: "Paid" },
-          { ref: "INV-26-0414", item: "Transport (First Term)", date: "02 Sep 2026", amount: 30000, status: "Paid" }
-        ],
-        payments: [
-          { date: "04 Sep 2026", ref: "PSK-8841203", method: "Bank transfer", amount: 150000 },
-          { date: "18 Sep 2026", ref: "PSK-8890311", method: "Card payment", amount: 35000 }
-        ]
-      },
-      assignments: [
-        { title: "Quadratic equations \u2014 exercise 4B", subject: "Mathematics", due: "Tomorrow, 26 Oct", tone: "warn", status: "Due soon" },
-        { title: "Memorise Surah Al-Mulk (verses 1\u201315)", subject: "Islamic Studies", due: "Thu, 29 Oct", tone: "info", status: "In progress" },
-        { title: "Water filtration lab report", subject: "Basic Science", due: "Submitted 22 Oct", tone: "ok", status: "Submitted" }
-      ]
-    },
-    yusuf: {
-      id: "stu-1002",
-      name: "Yusuf Abdullahi",
-      initials: "YA",
-      klass: "Primary 5A",
-      level: "Primary",
-      admissionNo: "AF/2025/0321",
-      house: "Al-Farooq House",
-      formTeacher: "Mrs. Grace Adeyemi",
-      guardian: { name: "Mr. Ibrahim Abdullahi", relation: "Father", phone: "+234 803 000 0000" },
-      attendance: {
-        rate: 93,
-        days: 72,
-        present: 64,
-        absent: 5,
-        late: 3,
-        weeks: [
-          { label: "W1", value: 100 },
-          { label: "W2", value: 88 },
-          { label: "W3", value: 94 },
-          { label: "W4", value: 83 },
-          { label: "W5", value: 100 },
-          { label: "W6", value: 92 },
-          { label: "W7", value: 96 }
-        ],
-        recent: [
-          { date: "Fri, 23 Oct 2026", day: "Friday", status: "Present", tone: "ok", note: "Signed in at 7:58am" },
-          { date: "Thu, 22 Oct 2026", day: "Thursday", status: "Present", tone: "ok", note: "Signed in at 8:01am" },
-          { date: "Wed, 21 Oct 2026", day: "Wednesday", status: "Absent", tone: "danger", note: "No notice received" },
-          { date: "Tue, 20 Oct 2026", day: "Tuesday", status: "Present", tone: "ok", note: "Signed in at 7:59am" },
-          { date: "Mon, 19 Oct 2026", day: "Monday", status: "Late", tone: "warn", note: "Arrived at 8:05am" },
-          { date: "Fri, 16 Oct 2026", day: "Friday", status: "Present", tone: "ok", note: "Signed in at 7:57am" },
-          { date: "Thu, 15 Oct 2026", day: "Thursday", status: "Present", tone: "ok", note: "Signed in at 8:00am" },
-          { date: "Wed, 14 Oct 2026", day: "Wednesday", status: "Late", tone: "warn", note: "Arrived at 8:03am" }
-        ]
-      },
-      results: makeResults("Third Term, 2025/2026", "18 Jul 2026", [
-        ["English Studies", 32, 46],
-        ["Mathematics", 35, 50],
-        ["Basic Science", 33, 48],
-        ["Islamic Studies", 36, 52],
-        ["Arabic", 31, 45],
-        ["Social Studies", 30, 44],
-        ["Computer Studies", 34, 49],
-        ["Agricultural Science", 32, 47]
-      ], 5, 32),
-      timetable: buildTimetable(PRIMARY_DAYS, "Primary 5A"),
-      fees: {
-        term: "First Term 2026/2027",
-        total: 145000,
-        paid: 120000,
-        balance: 25000,
-        dueDate: "30 Sep 2026",
-        invoices: [
-          { ref: "INV-26-0528", item: "Tuition (First Term)", date: "02 Sep 2026", amount: 95000, status: "Paid" },
-          { ref: "INV-26-0529", item: "Books & learning materials", date: "02 Sep 2026", amount: 25000, status: "Paid" },
-          { ref: "INV-26-0530", item: "Transport (First Term)", date: "02 Sep 2026", amount: 25000, status: "Unpaid" }
-        ],
-        payments: [
-          { date: "05 Sep 2026", ref: "PSK-8847120", method: "Bank transfer", amount: 95000 },
-          { date: "17 Sep 2026", ref: "PSK-8887742", method: "POS at school office", amount: 25000 }
-        ]
-      },
-      assignments: [
-        { title: "Fractions workbook, pages 24\u201326", subject: "Mathematics", due: "Tomorrow, 26 Oct", tone: "warn", status: "Due soon" },
-        { title: "Arabic handwriting practice", subject: "Arabic", due: "Fri, 30 Oct", tone: "info", status: "Pending" }
-      ]
-    }
-  };
-
-  /* ============================================================
-     4. ANNOUNCEMENTS + EVENTS
-     ============================================================ */
-  var ANNOUNCEMENTS = [
-    {
-      day: "24", month: "Oct", date: "24 Oct 2026", tag: "Events", pinned: true,
-      audience: ["student", "parent", "teacher", "admin"],
-      title: "First Term mid-term break",
-      body: "The school closes on Friday, 30 October and reopens on Monday, 9 November 2026, in shaa Allah. Please plan pick-up accordingly."
-    },
-    {
-      day: "21", month: "Oct", date: "21 Oct 2026", tag: "Academics",
-      audience: ["parent", "teacher", "admin"],
-      title: "Parent\u2013Teacher meeting",
-      body: "Our termly Parent\u2013Teacher meeting holds on Saturday, 7 November, from 9:00am to 1:00pm in the main hall. Reports and subject feedback will be shared."
-    },
-    {
-      day: "20", month: "Oct", date: "20 Oct 2026", tag: "Academics",
-      audience: ["student", "parent"],
-      title: "Third Term results are now published",
-      body: "Parents and students can now view the Third Term 2025/2026 results in the portal. Report cards are available for download."
-    },
-    {
-      day: "19", month: "Oct", date: "19 Oct 2026", tag: "Staff",
-      audience: ["teacher", "admin"],
-      title: "Result entry deadline for teaching staff",
-      body: "All First Term continuous assessment scores must be submitted through the portal by 5:00pm on Wednesday, 28 October."
-    },
-    {
-      day: "16", month: "Oct", date: "16 Oct 2026", tag: "Islamic",
-      audience: ["student", "parent", "teacher", "admin"],
-      title: "Annual Qur\u2019an competition",
-      body: "Registration is open for the annual Qur\u2019an recitation competition. Interested students should see their Islamic Studies teacher before 31 October."
-    },
-    {
-      day: "12", month: "Oct", date: "12 Oct 2026", tag: "General",
-      audience: ["student", "parent", "teacher", "admin"],
-      title: "New titles in the school library",
-      body: "Over 120 new books across science, history and Islamic literature are now available in the school library."
-    }
-  ];
-
-  var EVENTS = [
-    { day: "30", month: "Oct", title: "Mid-term break begins", meta: "Friday \u00B7 School closes" },
-    { day: "07", month: "Nov", title: "Parent\u2013Teacher meeting", meta: "Saturday \u00B7 9:00am \u00B7 Main hall" },
-    { day: "13", month: "Nov", title: "Qur\u2019an competition finals", meta: "Friday \u00B7 10:00am \u00B7 Assembly hall" }
-  ];
-
-  /* ============================================================
-     5. STAFF + ADMINISTRATION (sample records)
-     ============================================================ */
   var TEACHER = {
-    name: "Ustadh Sulaiman Bello",
-    initials: "SB",
-    email: "s.bello@alfalaah.edu.ng",
-    role: "Mathematics Teacher",
-    formClass: "JSS 2B",
-    stats: { lessons: 4, registers: 2, sheets: 1, students: 128 },
-    schedule: [
-      { period: "Period 1", time: "8:00 \u2013 8:40", subject: "Mathematics", klass: "JSS 2B", room: "JSS 2B", next: true },
-      { period: "Period 2", time: "8:40 \u2013 9:20", subject: "Mathematics", klass: "JSS 1A", room: "JSS 1A" },
-      { period: "Period 4", time: "10:20 \u2013 11:00", subject: "Mathematics", klass: "JSS 3A", room: "JSS 3A" },
-      { period: "Period 5", time: "11:00 \u2013 11:40", subject: "Further Mathematics", klass: "SSS 1B", room: "SSS 1B" }
-    ],
-    pendingRegisters: [
-      { klass: "JSS 1A", period: "Period 2", time: "8:40 \u2013 9:20", students: 34 },
-      { klass: "JSS 3A", period: "Period 4", time: "10:20 \u2013 11:00", students: 29 }
-    ],
-    classPerformance: [
-      { klass: "JSS 2B", average: 82 },
-      { klass: "JSS 1A", average: 76 },
-      { klass: "JSS 3A", average: 71 },
-      { klass: "SSS 1B", average: 68 }
-    ]
+    name: "",
+    initials: "",
+    email: "",
+    role: "Teaching staff",
+    formClass: "",
+    stats: {},
+    schedule: [],
+    pendingRegisters: [],
+    classPerformance: [],
+    classes: [],
+    resultSheets: []
   };
 
   var ADMIN = {
-    name: "Mrs. Hauwa Sanni",
-    initials: "HS",
-    email: "h.sanni@alfalaah.edu.ng",
-    role: "Head of Administration",
-    stats: { students: 428, staff: 32, attendance: 94, collected: 12400000 },
-    levels: [
-      { label: "Nursery", count: 64 },
-      { label: "Primary", count: 182 },
-      { label: "Junior Secondary", count: 104 },
-      { label: "Senior Secondary", count: 78 }
-    ],
-    pipeline: [
-      { label: "New applications", count: 18 },
-      { label: "Assessment booked", count: 7 },
-      { label: "Offers issued", count: 5 },
-      { label: "Enrolled", count: 3 }
-    ],
-    approvals: [
-      { klass: "JSS 2B", subject: "Mathematics", teacher: "Ustadh S. Bello", submitted: "24 Oct 2026", status: "Pending", tone: "warn" },
-      { klass: "Primary 5A", subject: "English Studies", teacher: "Mrs. G. Adeyemi", submitted: "23 Oct 2026", status: "Pending", tone: "warn" },
-      { klass: "SSS 2A", subject: "Biology", teacher: "Mrs. B. Okonkwo", submitted: "23 Oct 2026", status: "In review", tone: "info" },
-      { klass: "JSS 3A", subject: "Islamic Studies", teacher: "Ustadh I. Musa", submitted: "22 Oct 2026", status: "Approved", tone: "ok" }
-    ]
+    name: "",
+    initials: "",
+    email: "",
+    role: "School administrator",
+    stats: {},
+    levels: [],
+    pipeline: [],
+    approvals: [],
+    students: [],
+    teachers: [],
+    admissions: [],
+    finance: {},
+    classes: [],
+    terms: [],
+    resultSheets: []
   };
 
   /* ============================================================
-     6. ROLES + NAVIGATION
+     3. ROLES + NAVIGATION
      ============================================================ */
   var ROLES = {
     student: {
       label: "Student",
-      userName: "Aisha Abdullahi",
-      shortName: "Aisha",
-      initials: "AA",
-      meta: "JSS 2B \u00B7 Student",
-      email: "aisha.abdullahi@student.alfalaah.edu.ng",
-      studentId: "aisha",
+      userName: "",
+      shortName: "",
+      initials: "",
+      meta: "",
+      email: "",
+      studentId: null,
       tabbar: ["overview", "timetable", "results", "announcements"],
       nav: [
         { key: "overview", label: "Overview", icon: "layout-dashboard", group: "My school" },
@@ -412,23 +109,19 @@
         { key: "results", label: "Results", icon: "graduation-cap", group: "My school" },
         { key: "attendance", label: "Attendance", icon: "clipboard-check", group: "My school" },
         { key: "fees", label: "Fees & payments", icon: "wallet", group: "Services", tabLabel: "Fees" },
-        { key: "announcements", label: "Announcements", icon: "megaphone", group: "Services", badge: 2 }
+        { key: "announcements", label: "Announcements", icon: "megaphone", group: "Services" }
       ],
-      notifications: [
-        { icon: "graduation-cap", title: "Third Term results published", meta: "Results \u00B7 2 hours ago", unread: true },
-        { icon: "calendar-days", title: "Mid-term break: 30 Oct \u2013 9 Nov", meta: "Announcement \u00B7 1 day ago", unread: true },
-        { icon: "book-open", title: "Mathematics homework due tomorrow", meta: "Assignments \u00B7 2 days ago", unread: false }
-      ]
+      notifications: []
     },
 
     parent: {
       label: "Parent",
-      userName: "Mr. Ibrahim Abdullahi",
-      shortName: "Mr. Abdullahi",
-      initials: "IA",
-      meta: "Parent of 2 children",
-      email: "ibrahim.abdullahi@example.com",
-      childIds: ["aisha", "yusuf"],
+      userName: "",
+      shortName: "",
+      initials: "",
+      meta: "",
+      email: "",
+      childIds: [],
       tabbar: ["overview", "results", "attendance", "fees"],
       nav: [
         { key: "overview", label: "Overview", icon: "layout-dashboard", group: "My children" },
@@ -438,140 +131,46 @@
         { key: "fees", label: "Fees & payments", icon: "wallet", group: "Services", tabLabel: "Fees" },
         { key: "announcements", label: "Announcements", icon: "megaphone", group: "Services" }
       ],
-      notifications: [
-        { icon: "wallet", title: "\u20A625,000 fee balance for Yusuf", meta: "Accounts \u00B7 3 hours ago", unread: true },
-        { icon: "users", title: "Parent\u2013Teacher meeting on 7 November", meta: "Announcement \u00B7 1 day ago", unread: true },
-        { icon: "graduation-cap", title: "Aisha\u2019s Third Term results published", meta: "Results \u00B7 2 days ago", unread: false }
-      ]
+      notifications: []
     },
 
     teacher: {
       label: "Teacher",
-      userName: "Ustadh Sulaiman Bello",
-      shortName: "Ustadh Sulaiman",
-      initials: "SB",
-      meta: "Mathematics \u00B7 JSS 2B",
-      email: "s.bello@alfalaah.edu.ng",
+      userName: "",
+      shortName: "",
+      initials: "",
+      meta: "Teaching staff",
+      email: "",
       tabbar: ["overview", "attendance", "results", "announcements"],
       nav: [
         { key: "overview", label: "Overview", icon: "layout-dashboard", group: "Teaching" },
-        {
-          key: "classes", label: "My classes", icon: "users", group: "Teaching",
-          module: {
-            summary: "Every class you teach, its roster and its timetable in one place.",
-            features: [
-              "Class rosters with student photographs and guardian contacts",
-              "Class-specific timetables and lesson planning notes",
-              "Attendance history for each class and term",
-              "Direct messaging with form teachers and parents"
-            ],
-            backend: "Requires class-teacher assignments, student enrolment records and a read-only timetable endpoint."
-          }
-        },
-        {
-          key: "attendance", label: "Attendance", icon: "clipboard-check", group: "Teaching", badge: 2,
-          module: {
-            summary: "Mark registers from any device and keep an auditable attendance history.",
-            features: [
-              "Daily register with present, absent and late states",
-              "Guardian notifications for unexplained absences",
-              "Termly attendance summaries per student and class",
-              "Exportable attendance reports for the administration"
-            ],
-            backend: "Requires attendance tables keyed by class, date and student, plus role-scoped write access."
-          }
-        },
-        {
-          key: "results", label: "Results entry", icon: "file-check-2", group: "Teaching",
-          module: {
-            summary: "Enter continuous assessment and exam scores, then submit for approval.",
-            features: [
-              "Subject score entry with CA and examination columns",
-              "Automatic totals, grades and class positions",
-              "Submission workflow with administrator approval",
-              "Locked sheets after publication to protect records"
-            ],
-            backend: "Requires subject-teacher assignments, assessment schemas and an approval audit trail."
-          }
-        },
+        { key: "classes", label: "My classes", icon: "users", group: "Teaching" },
+        { key: "attendance", label: "Attendance", icon: "clipboard-check", group: "Teaching" },
+        { key: "results", label: "Results entry", icon: "file-check-2", group: "Teaching" },
         { key: "announcements", label: "Announcements", icon: "megaphone", group: "School" }
       ],
-      notifications: [
-        { icon: "clipboard-check", title: "2 attendance registers pending", meta: "Attendance \u00B7 Today", unread: true },
-        { icon: "file-check-2", title: "Result entry closes 28 October", meta: "Academics \u00B7 Today", unread: true },
-        { icon: "megaphone", title: "Staff briefing moved to 8:00am", meta: "Announcement \u00B7 1 day ago", unread: false }
-      ]
+      notifications: []
     },
 
     admin: {
       label: "Administrator",
-      userName: "Mrs. Hauwa Sanni",
-      shortName: "Mrs. Hauwa",
-      initials: "HS",
-      meta: "Head of Administration",
-      email: "h.sanni@alfalaah.edu.ng",
-      tabbar: ["overview", "admissions", "students", "announcements"],
+      userName: "",
+      shortName: "",
+      initials: "",
+      meta: "School administrator",
+      email: "",
+      tabbar: ["overview", "students", "admissions", "announcements"],
       nav: [
         { key: "overview", label: "Overview", icon: "layout-dashboard", group: "Administration" },
-        {
-          key: "students", label: "Students", icon: "users", group: "Administration",
-          module: {
-            summary: "The complete student register \u2014 enrolment, classes, guardians and records.",
-            features: [
-              "Enrol, transfer and graduate students with a full history",
-              "Guardian and emergency-contact records",
-              "Class allocation, houses and admission numbers",
-              "Bulk import and export of student data"
-            ],
-            backend: "Requires a students table with guardian relations, class history and safe CSV import."
-          }
-        },
-        {
-          key: "staff", label: "Staff", icon: "id-card", group: "Administration",
-          module: {
-            summary: "Manage teaching and non-teaching staff, roles and permissions.",
-            features: [
-              "Staff directory with subject and class assignments",
-              "Role-based permissions for portal access",
-              "Account provisioning and password resets",
-              "Employment records and document storage"
-            ],
-            backend: "Requires users, roles and permissions tables with audit logging."
-          }
-        },
-        {
-          key: "academics", label: "Academics", icon: "book-open", group: "Administration",
-          module: {
-            summary: "Classes, subjects, timetables and the academic calendar.",
-            features: [
-              "Class and subject management per level",
-              "Timetable builder with teacher conflict checks",
-              "Term and session calendar management",
-              "Approval workflow for published results"
-            ],
-            backend: "Requires classes, subjects, timetable slots and session tables."
-          }
-        },
-        {
-          key: "admissions", label: "Admissions", icon: "user-plus", group: "Administration", badge: 18,
-          module: {
-            summary: "Track applications from enquiry to enrolment without losing a single family.",
-            features: [
-              "Application pipeline with statuses and owners",
-              "Assessment scheduling and outcome records",
-              "Offer letters and acceptance tracking",
-              "Conversion of accepted applicants into student records"
-            ],
-            backend: "Requires an applications table, status transitions and secure file storage for documents."
-          }
-        },
+        { key: "students", label: "Students", icon: "users", group: "Administration" },
+        { key: "staff", label: "Staff", icon: "id-card", group: "Administration" },
+        { key: "academics", label: "Academics", icon: "book-open", group: "Administration" },
+        { key: "results", label: "Results", icon: "file-check-2", group: "Administration" },
+        { key: "admissions", label: "Admissions", icon: "user-plus", group: "Administration" },
+        { key: "finance", label: "Fees & finance", icon: "wallet", group: "Administration" },
         { key: "announcements", label: "Announcements", icon: "megaphone", group: "School" }
       ],
-      notifications: [
-        { icon: "file-check-2", title: "4 result sheets awaiting approval", meta: "Academics \u00B7 1 hour ago", unread: true },
-        { icon: "user-plus", title: "18 new admission applications", meta: "Admissions \u00B7 Today", unread: true },
-        { icon: "wallet", title: "\u20A612.4m collected this term", meta: "Accounts \u00B7 Today", unread: false }
-      ]
+      notifications: []
     }
   };
 
@@ -579,13 +178,602 @@
      7. STATE
      ============================================================ */
   var state = {
-    role: "student",
+    role: "",
     section: "overview",
-    childId: "aisha",
-    annFilter: "All"
+    childId: null,
+    annFilter: "All",
+    ready: false,
+    attendance: null,
+    resultSheet: null
   };
 
-  var readAll = { student: false, parent: false, teacher: false, admin: false };
+  var DATA = {
+    dashboard: null,
+    announcements: [],
+    notifications: [],
+    timetables: {},
+    classes: [],
+    terms: [],
+    adminStudents: [],
+    adminTeachers: [],
+    adminAdmissions: [],
+    adminFinance: null,
+    adminResultSheets: []
+  };
+
+  var API = window.AlFalaahApi;
+
+  /* ============================================================
+     7b. API DATA ADAPTERS
+     ============================================================ */
+  function asNumber(value, fallback) {
+    var num = Number(value);
+    return Number.isFinite(num) ? num : (fallback === undefined ? 0 : fallback);
+  }
+
+  function numberText(value, decimals) {
+    var num = Number(value);
+    if (!Number.isFinite(num)) return "\u2014";
+    return num.toFixed(decimals === undefined ? 1 : decimals);
+  }
+
+  function compactMoney(amount) {
+    var value = asNumber(amount);
+    if (value >= 1000000) return "\u20A6" + (value / 1000000).toFixed(value % 1000000 === 0 ? 0 : 1) + "m";
+    if (value >= 1000) return "\u20A6" + Math.round(value / 1000) + "k";
+    return money(value);
+  }
+
+  function timeLabel(value) {
+    if (!value) return "";
+    var parts = String(value).split(":");
+    var hour = Number(parts[0]);
+    var minute = parts[1] || "00";
+    if (!Number.isFinite(hour)) return String(value);
+    var suffix = hour >= 12 ? "pm" : "am";
+    hour = hour % 12 || 12;
+    return hour + ":" + minute + suffix;
+  }
+
+  function longDate(value) {
+    if (!value) return "\u2014";
+    var date = new Date(String(value).replace(" ", "T"));
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function academicWeek(term) {
+    if (!term || !term.starts_on) return "";
+    var start = new Date(term.starts_on + "T00:00:00");
+    var now = new Date();
+    if (Number.isNaN(start.getTime())) return "";
+    var days = Math.floor((now - start) / 86400000);
+    if (days < 0) return "Before term";
+    return "Week " + (Math.floor(days / 7) + 1);
+  }
+
+  function todayISO() {
+    var now = new Date();
+    var month = String(now.getMonth() + 1).padStart(2, "0");
+    var day = String(now.getDate()).padStart(2, "0");
+    return now.getFullYear() + "-" + month + "-" + day;
+  }
+
+  function setFormMessage(form, message, tone) {
+    var box = form.querySelector(".form-msg");
+    if (!box) return;
+    box.textContent = message || "";
+    box.classList.remove("form-msg--err", "form-msg--ok");
+    if (message) {
+      box.classList.add("is-visible");
+      box.classList.add(tone === "ok" ? "form-msg--ok" : "form-msg--err");
+    } else {
+      box.classList.remove("is-visible");
+    }
+  }
+
+  function setButtonBusy(button, busy, label) {
+    if (!button) return;
+    if (!button.getAttribute("data-label")) {
+      button.setAttribute("data-label", button.innerHTML);
+    }
+    button.disabled = busy;
+    if (busy) {
+      button.innerHTML = '<i data-lucide="loader-circle"></i> ' + esc(label || "Working\u2026");
+      icons();
+    } else {
+      button.innerHTML = button.getAttribute("data-label");
+      icons();
+    }
+  }
+
+  function statusTone(status) {
+    return {
+      draft: "info",
+      not_started: "info",
+      submitted: "warn",
+      approved: "ok",
+      published: "ok",
+      returned: "danger"
+    }[status] || "info";
+  }
+
+  function statusLabel(status, fallback) {
+    if (fallback) return fallback;
+    return String(status || "unknown").replace(/_/g, " ").replace(/\b\w/g, function (letter) {
+      return letter.toUpperCase();
+    });
+  }
+
+  function emptyTimetable() {
+    var periods = [1, 2, 3, 4, 5, 6].map(function (period) {
+      return { period: period, label: "Period " + period, time: "" };
+    });
+    var days = {};
+    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].forEach(function (day) {
+      days[day] = periods.map(function () {
+        return { subject: "Free", teacher: "", room: "" };
+      });
+    });
+    return { periods: periods, days: days };
+  }
+
+  function normalizeTimetable(payload) {
+    var timetable = payload && payload.data ? payload.data.timetable : null;
+    if (!timetable) return emptyTimetable();
+
+    var periods = Array.isArray(timetable.periods) && timetable.periods.length
+      ? timetable.periods.map(function (period) {
+          return {
+            period: period.period,
+            label: period.label || "Period " + period.period,
+            time: period.time || ""
+          };
+        })
+      : emptyTimetable().periods;
+
+    var days = {};
+    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].forEach(function (day) {
+      var source = timetable.days && Array.isArray(timetable.days[day]) ? timetable.days[day] : [];
+      var byPeriod = {};
+      source.forEach(function (slot) { byPeriod[slot.period] = slot; });
+
+      days[day] = periods.map(function (period) {
+        var slot = byPeriod[period.period];
+        if (!slot) return { subject: "Free", teacher: "", room: "" };
+        return {
+          subject: slot.subject && slot.subject.name ? slot.subject.name : "Lesson",
+          teacher: slot.teacher || "Unassigned",
+          room: slot.room || ""
+        };
+      });
+    });
+
+    return { periods: periods, days: days };
+  }
+
+  function normalizeResults(results) {
+    if (!results) {
+      return { term: "No published results", published: null, subjects: [], average: null, position: null, classSize: null };
+    }
+    return {
+      term: results.term || "Current term",
+      published: results.published || null,
+      subjects: Array.isArray(results.subjects) ? results.subjects : [],
+      average: results.average === null || results.average === undefined ? null : asNumber(results.average),
+      position: results.position === null || results.position === undefined ? null : asNumber(results.position),
+      classSize: results.class_size === null || results.class_size === undefined ? null : asNumber(results.class_size)
+    };
+  }
+
+  function normalizeAttendance(attendance) {
+    var value = attendance || {};
+    return {
+      rate: asNumber(value.rate),
+      days: asNumber(value.days),
+      present: asNumber(value.present),
+      absent: asNumber(value.absent),
+      late: asNumber(value.late),
+      excused: asNumber(value.excused),
+      weeks: Array.isArray(value.weeks) ? value.weeks : [],
+      recent: Array.isArray(value.recent) ? value.recent : []
+    };
+  }
+
+  function normalizeFees(fees) {
+    var value = fees || {};
+    return {
+      term: value.term || (SCHOOL.term + " " + SCHOOL.session).trim(),
+      total: asNumber(value.total),
+      paid: asNumber(value.paid),
+      balance: asNumber(value.balance),
+      dueDate: value.due_date || "",
+      invoices: Array.isArray(value.invoices) ? value.invoices : [],
+      payments: Array.isArray(value.payments) ? value.payments : []
+    };
+  }
+
+  function normalizeStudent(student, extras) {
+    extras = extras || {};
+    var first = student.first_name || "";
+    var last = student.last_name || "";
+    var classroom = student.class || {};
+    return {
+      id: student.id,
+      name: student.name || (first + " " + last).trim(),
+      initials: student.initials || ((first.charAt(0) + last.charAt(0)).toUpperCase() || "?"),
+      klass: classroom.name || student.level || "Unassigned",
+      level: classroom.level_label || student.level || "",
+      admissionNo: student.admission_no || "\u2014",
+      house: student.house || "\u2014",
+      formTeacher: student.form_teacher || "Not assigned",
+      guardian: student.guardian || { name: "Not provided", relation: "", phone: "", email: "" },
+      attendance: normalizeAttendance(extras.attendance),
+      results: normalizeResults(extras.results),
+      timetable: extras.timetable || emptyTimetable(),
+      fees: normalizeFees(extras.fees),
+      assignments: Array.isArray(extras.assignments) ? extras.assignments : [],
+      upNext: Array.isArray(extras.upNext) ? extras.upNext : []
+    };
+  }
+
+  function normalizeAnnouncements(list) {
+    return (Array.isArray(list) ? list : []).map(function (item) {
+      return {
+        id: item.id,
+        day: item.day || "\u2014",
+        month: item.month || "",
+        date: item.date || "",
+        tag: item.tag || "General",
+        pinned: !!item.pinned,
+        audiences: Array.isArray(item.audiences) ? item.audiences : [],
+        title: item.title || "Untitled notice",
+        body: item.body || ""
+      };
+    });
+  }
+
+  function normalizeNotifications(payload) {
+    var data = payload && payload.data ? payload.data : {};
+    var items = Array.isArray(data.items) ? data.items : [];
+    var icons = {
+      assignment: "book-open",
+      announcement: "megaphone",
+      result: "graduation-cap",
+      fee: "wallet",
+      attendance: "clipboard-check",
+      admission: "user-plus"
+    };
+    var labels = {
+      assignment: "Assignments",
+      announcement: "Announcement",
+      result: "Results",
+      fee: "Accounts",
+      attendance: "Attendance",
+      admission: "Admissions"
+    };
+    return items.map(function (item) {
+      return {
+        id: item.id,
+        icon: icons[item.type] || "bell",
+        title: item.title || "Notification",
+        meta: (item.age ? item.age + " \u00B7 " : "") + (labels[item.type] || "School"),
+        unread: !item.is_read,
+        type: item.type || "",
+        relatedType: item.related_type || "",
+        relatedId: item.related_id || null
+      };
+    });
+  }
+
+  function setNavBadge(role, key, value) {
+    var nav = ROLES[role] && ROLES[role].nav ? ROLES[role].nav : [];
+    nav.forEach(function (item) {
+      if (item.key === key) {
+        if (value) item.badge = value;
+        else delete item.badge;
+      }
+    });
+  }
+
+  function hydrateStudent(dash, timetablePayload) {
+    var student = normalizeStudent(dash.student, {
+      attendance: dash.attendance,
+      results: dash.results,
+      fees: dash.fees,
+      assignments: dash.assignments,
+      upNext: dash.up_next,
+      timetable: normalizeTimetable(timetablePayload)
+    });
+    STUDENTS[student.id] = student;
+    ROLES.student.studentId = student.id;
+    ROLES.student.meta = student.klass + " \u00B7 Student";
+    return student;
+  }
+
+  function hydrateParent(dash, timetableMap) {
+    var children = Array.isArray(dash.children) ? dash.children : [];
+    var ids = [];
+
+    children.forEach(function (child) {
+      var person = child.student || {};
+      var student = normalizeStudent(person, {
+        attendance: child.attendance,
+        results: child.results,
+        fees: child.fees,
+        assignments: child.assignments,
+        upNext: child.up_next,
+        timetable: normalizeTimetable(timetableMap[person.id] || null)
+      });
+      STUDENTS[student.id] = student;
+      ids.push(student.id);
+    });
+
+    ROLES.parent.childIds = ids;
+    ROLES.parent.meta = "Parent of " + ids.length + (ids.length === 1 ? " child" : " children");
+    var active = dash.active_child && dash.active_child.id ? dash.active_child.id : ids[0];
+    state.childId = ids.indexOf(active) !== -1 ? active : ids[0] || null;
+  }
+
+  function hydrateTeacher(dash) {
+    var stats = dash.stats || {};
+    var classes = Array.isArray(dash.classes) ? dash.classes : [];
+    var classById = {};
+    classes.forEach(function (item) { classById[item.id] = item; });
+
+    TEACHER = {
+      name: (dash.teacher && dash.teacher.name) || dash.user.display_name || "",
+      initials: (dash.teacher && dash.teacher.initials) || dash.user.initials || "",
+      email: dash.user.email || "",
+      role: "Teaching staff",
+      formClass: "",
+      stats: stats,
+      schedule: (Array.isArray(dash.schedule) ? dash.schedule : []).map(function (row) {
+        return {
+          period: "Period " + row.period,
+          time: row.time || (timeLabel(row.starts_at) + " \u2013 " + timeLabel(row.ends_at)),
+          subject: row.subject ? row.subject.name : "",
+          klass: row.class ? row.class.name : "",
+          room: row.room || "",
+          startsAt: row.starts_at || ""
+        };
+      }),
+      pendingRegisters: (Array.isArray(dash.pending_registers) ? dash.pending_registers : []).map(function (row) {
+        var classroom = classById[row.class_id] || {};
+        return {
+          classId: row.class_id,
+          klass: row.class_name,
+          period: "Period " + row.period,
+          time: timeLabel(row.starts_at),
+          students: classroom.students || 0
+        };
+      }),
+      classPerformance: classes.filter(function (row) { return row.average !== null; }).map(function (row) {
+        return { klass: row.name, average: asNumber(row.average) };
+      }),
+      classes: classes,
+      resultSheets: Array.isArray(dash.result_sheets) ? dash.result_sheets : []
+    };
+
+    ROLES.teacher.meta = stats.classes + " classes \u00B7 " + stats.students + " students";
+    setNavBadge("teacher", "attendance", stats.pending_registers || 0);
+    setNavBadge("teacher", "results", stats.sheets_outstanding || 0);
+  }
+
+  function normalizeApproval(row) {
+    var tones = { submitted: "warn", approved: "ok", published: "ok", draft: "info", returned: "danger" };
+    return {
+      id: row.id,
+      klass: row.class ? row.class.name : "\u2014",
+      subject: row.subject ? row.subject.name : "\u2014",
+      teacher: row.teacher || "\u2014",
+      submitted: row.submitted_at ? longDate(row.submitted_at) : "Not submitted",
+      status: row.status_label || row.status || "Draft",
+      tone: tones[row.status] || "info"
+    };
+  }
+
+  function hydrateAdmin(dash, extras) {
+    var stats = dash.stats || {};
+    var admissions = dash.admissions || {};
+    var pipeline = admissions.pipeline || {};
+    var labels = {
+      new: "New applications",
+      assessment: "Assessment booked",
+      offer: "Offers issued",
+      enrolled: "Enrolled",
+      declined: "Declined"
+    };
+
+    ADMIN = {
+      name: dash.user.display_name || "",
+      initials: dash.user.initials || "",
+      email: dash.user.email || "",
+      role: "School administrator",
+      stats: {
+        students: asNumber(stats.students),
+        teachers: asNumber(stats.teachers),
+        staff: asNumber(stats.staff),
+        attendance: asNumber(stats.attendance_rate),
+        attendanceDate: stats.attendance_date || "",
+        collected: asNumber(stats.fees_collected),
+        outstanding: asNumber(stats.fees_outstanding),
+        collectionRate: asNumber(stats.fees_collection_rate),
+        pendingApprovals: asNumber(stats.pending_approvals)
+      },
+      levels: (Array.isArray(dash.levels) ? dash.levels : []).map(function (level) {
+        return { label: level.label, count: asNumber(level.students), classes: asNumber(level.classes) };
+      }),
+      pipeline: Object.keys(labels).map(function (key) {
+        return { label: labels[key], count: asNumber(pipeline[key]) };
+      }),
+      approvals: (Array.isArray(dash.approvals) ? dash.approvals : []).map(normalizeApproval),
+      students: extras.students || [],
+      teachers: extras.teachers || [],
+      admissions: extras.admissions || [],
+      finance: extras.finance || null,
+      classes: extras.classes || [],
+      terms: extras.terms || [],
+      resultSheets: extras.resultSheets || []
+    };
+
+    ROLES.admin.meta = "School administrator";
+    setNavBadge("admin", "admissions", asNumber(pipeline.new) || (Array.isArray(ADMIN.admissions) ? ADMIN.admissions.filter(function (a) { return a.status === "new"; }).length : 0));
+    setNavBadge("admin", "results", ADMIN.stats.pendingApprovals);
+    setNavBadge("admin", "finance", "");
+  }
+
+  async function loadPortalData() {
+    var dashPayload = await API.get("/dashboard");
+    var dash = dashPayload && dashPayload.data ? dashPayload.data : null;
+    if (!dash || !dash.role) throw new Error("The portal returned an incomplete dashboard.");
+
+    var role = dash.role;
+    var requests = [
+      { key: "announcements", call: API.get("/announcements") },
+      { key: "notifications", call: API.get("/notifications") }
+    ];
+
+    if (role === "student" && dash.student) {
+      requests.push({ key: "timetable", call: API.get("/students/" + dash.student.id + "/timetable") });
+    }
+
+    if (role === "parent") {
+      (Array.isArray(dash.children) ? dash.children : []).forEach(function (child) {
+        if (child.student && child.student.id) {
+          requests.push({
+            key: "timetable:" + child.student.id,
+            call: API.get("/students/" + child.student.id + "/timetable")
+          });
+        }
+      });
+    }
+
+    if (role === "admin") {
+      requests.push(
+        { key: "adminStudents", call: API.get("/admin/students?per_page=100") },
+        { key: "adminTeachers", call: API.get("/admin/teachers") },
+        { key: "adminAdmissions", call: API.get("/admin/admissions?per_page=100") },
+        { key: "adminFinance", call: API.get("/admin/finance") },
+        { key: "adminResultSheets", call: API.get("/admin/result-sheets") },
+        { key: "classes", call: API.get("/classes") },
+        { key: "terms", call: API.get("/terms") }
+      );
+    }
+
+    var settled = await Promise.allSettled(requests.map(function (req) { return req.call; }));
+    var extras = {};
+    var failures = [];
+
+    settled.forEach(function (result, index) {
+      var key = requests[index].key;
+      if (result.status === "fulfilled") {
+        extras[key] = result.value;
+      } else {
+        failures.push(result.reason);
+      }
+    });
+
+    var authFailure = failures.filter(function (error) { return API.isAuthError(error); })[0];
+    if (authFailure) throw authFailure;
+
+    return {
+      dash: dash,
+      announcements: extras.announcements && extras.announcements.data
+        ? extras.announcements.data
+        : (dash.announcements || []),
+      notifications: extras.notifications || { data: { items: [] } },
+      timetable: extras.timetable || null,
+      timetables: extras,
+      adminStudents: extras.adminStudents && extras.adminStudents.data ? extras.adminStudents.data : [],
+      adminTeachers: extras.adminTeachers && extras.adminTeachers.data ? extras.adminTeachers.data : [],
+      adminAdmissions: extras.adminAdmissions && extras.adminAdmissions.data ? extras.adminAdmissions.data : [],
+      adminFinance: extras.adminFinance && extras.adminFinance.data ? extras.adminFinance.data : null,
+      adminResultSheets: extras.adminResultSheets && extras.adminResultSheets.data ? extras.adminResultSheets.data : [],
+      classes: extras.classes && extras.classes.data ? extras.classes.data : [],
+      terms: extras.terms && extras.terms.data ? extras.terms.data : [],
+      failures: failures
+    };
+  }
+
+  function hydratePortal(data) {
+    var dash = data.dash;
+    state.role = dash.role;
+    state.ready = true;
+    DATA.dashboard = dash;
+    DATA.announcements = data.announcements;
+    DATA.notifications = data.notifications;
+    DATA.timetables = data.timetables;
+    DATA.adminStudents = data.adminStudents;
+    DATA.adminTeachers = data.adminTeachers;
+    DATA.adminAdmissions = data.adminAdmissions;
+    DATA.adminFinance = data.adminFinance;
+    DATA.adminResultSheets = data.adminResultSheets;
+    DATA.classes = data.classes;
+    DATA.terms = data.terms;
+
+    SCHOOL.session = dash.term && dash.term.session ? dash.term.session.name : "";
+    SCHOOL.term = dash.term ? dash.term.name : "";
+    SCHOOL.label = dash.term ? dash.term.label : "";
+    SCHOOL.week = academicWeek(dash.term);
+
+    var user = dash.user || {};
+    var cfg = ROLES[state.role];
+    cfg.userName = user.display_name || ((user.first_name || "") + " " + (user.last_name || "")).trim();
+    cfg.shortName = user.first_name || cfg.userName;
+    cfg.initials = user.initials || "";
+    cfg.email = user.email || "";
+
+    ANNOUNCEMENTS = normalizeAnnouncements(data.announcements);
+    cfg.notifications = normalizeNotifications(data.notifications);
+
+    if (state.role === "student") {
+      var student = hydrateStudent(dash, data.timetable);
+      cfg.meta = student.klass + " \u00B7 Student";
+    } else if (state.role === "parent") {
+      var timetableMap = {};
+      Object.keys(data.timetables).forEach(function (key) {
+        if (key.indexOf("timetable:") === 0) {
+          timetableMap[key.slice("timetable:".length)] = data.timetables[key];
+        }
+      });
+      hydrateParent(dash, timetableMap);
+    } else if (state.role === "teacher") {
+      hydrateTeacher(dash);
+    } else if (state.role === "admin") {
+      hydrateAdmin(dash, {
+        students: data.adminStudents,
+        teachers: data.adminTeachers,
+        admissions: data.adminAdmissions,
+        finance: data.adminFinance,
+        classes: data.classes,
+        terms: data.terms,
+        resultSheets: data.adminResultSheets
+      });
+    } else {
+      throw new Error("This account type cannot use the portal.");
+    }
+
+    var key = hashKey();
+    state.section = sectionExists(key) ? key : "overview";
+    if (state.role === "parent" && !state.childId) {
+      state.childId = ROLES.parent.childIds[0] || null;
+    }
+  }
+
+  function renderLoadError(message, canRetry) {
+    var root = document.getElementById("viewRoot");
+    if (!root) return;
+    root.innerHTML = '<section class="panel"><div class="panel__body">' +
+      '<div class="empty-state">' +
+        '<span class="empty-state__icon"><i data-lucide="cloud-off"></i></span>' +
+        "<h3>We could not load your portal</h3>" +
+        "<p>" + esc(message || "Please try again in a moment.") + "</p>" +
+        (canRetry ? '<button class="btn btn--primary mt-2" type="button" data-retry-load><i data-lucide="refresh-cw"></i> Try again</button>' : "") +
+        '<a class="btn btn--ghost mt-2" href="portal.html" data-logout><i data-lucide="log-in"></i> Return to sign in</a>' +
+      "</div></div></section>";
+    icons();
+  }
 
   /* ============================================================
      8. SMALL UI BUILDERS
@@ -594,10 +782,7 @@
     return '<section class="page-head">' +
       '<div class="page-head__text">' +
         (opts.eyebrow
-          ? '<div class="page-head__flags">' +
-              '<span class="eyebrow">' + esc(opts.eyebrow) + "</span>" +
-              '<span class="demo-flag" title="Interactive design preview using sample school data">Prototype</span>' +
-            "</div>"
+          ? '<div class="page-head__flags"><span class="eyebrow">' + esc(opts.eyebrow) + "</span></div>"
           : "") +
         '<h1 class="page-title">' + opts.title + "</h1>" +
         (opts.lead ? '<p class="page-lead">' + opts.lead + "</p>" : "") +
@@ -620,7 +805,7 @@
     return '<div class="stat' + (o.alert ? " stat--alert" : "") + '">' +
       '<span class="stat__icon"><i data-lucide="' + o.icon + '"></i></span>' +
       '<div><span class="stat__label">' + esc(o.label) + "</span>" +
-      '<span class="stat__value">' + o.value + "</span>" +
+      '<span class="stat__value">' + esc(o.value) + "</span>" +
       '<span class="stat__meta">' + esc(o.meta) + "</span></div></div>";
   }
 
@@ -630,11 +815,6 @@
 
   function statusPill(text, tone) {
     return '<span class="status' + (tone ? " status--" + tone : "") + '">' + esc(text) + "</span>";
-  }
-
-  function demoBtn(label, icon, message, variant) {
-    return '<button class="btn btn--' + (variant || "ghost") + '" type="button" data-demo="' +
-      esc(message) + '"><i data-lucide="' + icon + '"></i> ' + esc(label) + "</button>";
   }
 
   function callout(icon, html) {
@@ -653,8 +833,14 @@
     var head = headers.map(function (h) {
       return '<th scope="col"' + (h.align ? ' class="ta-' + h.align + '"' : "") + ">" + esc(h.label) + "</th>";
     }).join("");
-    var body = rows.map(function (cells) {
-      return "<tr>" + cells.map(function (cell, i) {
+    var body = rows.map(function (row) {
+      var cells = row;
+      var attrs = "";
+      if (!Array.isArray(row)) {
+        cells = row.cells || [];
+        attrs = row.attrs || "";
+      }
+      return "<tr" + attrs + ">" + cells.map(function (cell, i) {
         var h = headers[i] || {};
         return "<td" + (h.align ? ' class="ta-' + h.align + '"' : "") + ">" + cell + "</td>";
       }).join("") + "</tr>";
@@ -676,14 +862,6 @@
     }).join("") + "</ul>";
   }
 
-  function eventList() {
-    return '<ul class="event-list">' + EVENTS.map(function (e) {
-      return '<li class="event">' +
-        '<div class="event__date"><strong>' + esc(e.day) + "</strong><span>" + esc(e.month) + "</span></div>" +
-        '<div class="event__body"><strong>' + esc(e.title) + "</strong><span>" + esc(e.meta) + "</span></div></li>";
-    }).join("") + "</ul>";
-  }
-
   function taskList(tasks) {
     return '<ul class="task-list">' + tasks.map(function (t) {
       return "<li>" +
@@ -691,16 +869,6 @@
         '<div class="task__body"><strong>' + esc(t.title) + "</strong><span>" + esc(t.subject) + " \u00B7 " + esc(t.due) + "</span></div>" +
         statusPill(t.status, t.tone) + "</li>";
     }).join("") + "</ul>";
-  }
-
-  function lessonRow(lesson, time, isNext, periodLabel) {
-    var parts = splitTime(time);
-    return '<li class="lesson' + (isNext ? " is-next" : "") + '">' +
-      '<span class="lesson__time">' + esc(parts.start) + "<small>" + esc(parts.end) + "</small></span>" +
-      '<div class="lesson__body"><strong>' + esc(lesson.subject) + "</strong>" +
-      "<span>" + esc(lesson.teacher) + " \u00B7 " + esc(lesson.room) + "</span></div>" +
-      (isNext ? statusPill("Next", "gold") : '<span class="lesson__period">' + esc(periodLabel) + "</span>") +
-      "</li>";
   }
 
   function weekBars(weeks) {
@@ -801,20 +969,23 @@
     }).join("");
 
     document.querySelector("[data-role-chip]").innerHTML =
-      '<span class="role-chip"><span class="role-chip__dot" aria-hidden="true"></span>' + esc(cfg.label) + " view</span>";
+      '<span class="role-chip"><span class="role-chip__dot" aria-hidden="true"></span>' + esc(cfg.label) + " account</span>";
 
     document.querySelector("[data-sidebar-user]").innerHTML =
-      '<div class="user-card"><span class="avatar avatar--gold">' + esc(cfg.initials) + "</span>" +
-      '<div class="user-card__meta"><strong>' + esc(cfg.userName) + "</strong><span>" + esc(cfg.meta) + "</span></div>" +
-      '<a class="user-card__out" href="portal.html" aria-label="Sign out of the portal" title="Sign out"><i data-lucide="log-out"></i></a></div>';
+      '<div class="user-card"><span class="avatar avatar--gold">' + esc(cfg.initials || "?") + "</span>" +
+      '<div class="user-card__meta"><strong>' + esc(cfg.userName || "Loading\u2026") + "</strong><span>" + esc(cfg.meta) + "</span></div>" +
+      '<button class="user-card__out" type="button" data-logout aria-label="Sign out of the portal" title="Sign out"><i data-lucide="log-out"></i></button></div>';
   }
 
   function renderChrome() {
     var cfg = ROLES[state.role];
-    document.querySelector("[data-top-avatar]").textContent = cfg.initials;
-    document.querySelector("[data-top-name]").textContent = cfg.shortName;
-    var select = document.getElementById("roleSelect");
-    if (select) select.value = state.role;
+    document.querySelector("[data-top-avatar]").textContent = cfg.initials || "?";
+    document.querySelector("[data-top-name]").textContent = cfg.shortName || "Portal";
+    var termChip = document.querySelector("[data-term-label]");
+    if (termChip) {
+      termChip.innerHTML = '<i data-lucide="calendar-days"></i> ' + esc(SCHOOL.label || SCHOOL.term || "Current term");
+    }
+    document.title = cfg.label + " Dashboard \u2014 Al-Falaah School";
   }
 
   function renderTabbar() {
@@ -833,8 +1004,8 @@
   }
 
   function unreadCount() {
-    if (readAll[state.role]) return 0;
-    return ROLES[state.role].notifications.filter(function (n) { return n.unread; }).length;
+    var notifications = ROLES[state.role] ? ROLES[state.role].notifications : [];
+    return notifications.filter(function (n) { return n.unread; }).length;
   }
 
   function renderNotifications() {
@@ -843,20 +1014,21 @@
     var bell = document.querySelector("[data-notif-toggle]");
     var dot = document.querySelector("[data-notif-dot]");
     var unread = unreadCount();
+    var list = cfg.notifications || [];
 
     panelEl.innerHTML =
       '<div class="popover__head"><h3>Notifications</h3>' +
         (unread ? '<button class="text-btn" type="button" data-read-all>Mark all read</button>'
                 : '<span class="small muted">All caught up</span>') +
       "</div>" +
-      '<div class="popover__list">' + cfg.notifications.map(function (n) {
-        return '<button class="notif' + (n.unread && !readAll[state.role] ? " is-unread" : "") +
-          '" type="button" data-demo="This notification will open its related record once the portal is connected to the backend.">' +
+      '<div class="popover__list">' + (list.length ? list.map(function (n) {
+        return '<button class="notif' + (n.unread ? " is-unread" : "") +
+          '" type="button" data-notification="' + esc(n.id) + '">' +
           '<span class="notif__icon"><i data-lucide="' + n.icon + '"></i></span>' +
           '<span class="notif__body"><strong>' + esc(n.title) + "</strong><span>" + esc(n.meta) + "</span></span>" +
-          (n.unread && !readAll[state.role] ? '<span class="notif__dot" aria-hidden="true"></span>' : "") +
+          (n.unread ? '<span class="notif__dot" aria-hidden="true"></span>' : "") +
           "</button>";
-      }).join("") + "</div>" +
+      }).join("") : '<div class="popover__empty">No notifications right now.</div>') + "</div>" +
       '<div class="popover__foot"><a class="link-arrow" href="#announcements" data-view="announcements">View all announcements <i data-lucide="arrow-right"></i></a></div>';
 
     if (dot) dot.hidden = unread === 0;
@@ -866,14 +1038,13 @@
   function renderProfile() {
     var cfg = ROLES[state.role];
     document.querySelector("[data-profile-panel]").innerHTML =
-      '<div class="profile-pop__head"><span class="avatar avatar--gold">' + esc(cfg.initials) + "</span>" +
+      '<div class="profile-pop__head"><span class="avatar avatar--gold">' + esc(cfg.initials || "?") + "</span>" +
         '<div class="profile-pop__id"><strong>' + esc(cfg.userName) + "</strong><span>" + esc(cfg.email) + "</span></div></div>" +
       '<div class="popover__list popover__list--menu">' +
-        '<a class="menu-link" href="#" data-demo="Profile management arrives with the backend build."><i data-lucide="user"></i> My profile</a>' +
-        '<a class="menu-link" href="#" data-demo="Account settings, password changes and notification preferences arrive with the backend build."><i data-lucide="settings"></i> Account settings</a>' +
+        '<div class="menu-link menu-link--static"><i data-lucide="shield-check"></i> ' + esc(cfg.label) + " account</div>" +
         '<div class="menu-sep"></div>' +
         '<a class="menu-link" href="index.html"><i data-lucide="globe"></i> Back to website</a>' +
-        '<a class="menu-link menu-link--danger" href="portal.html"><i data-lucide="log-out"></i> Sign out</a>' +
+        '<a class="menu-link menu-link--danger" href="portal.html" data-logout><i data-lucide="log-out"></i> Sign out</a>' +
       "</div>";
   }
 
@@ -886,15 +1057,25 @@
       html = '<section class="panel"><div class="panel__body">' +
         emptyState("compass", "This section does not exist for your role", "Use the navigation to return to your dashboard.") +
         "</div></section>";
-    } else if (item.module) {
-      html = moduleView(item);
     } else {
       switch (item.key) {
         case "overview": html = overviewView(); break;
-        case "results": html = resultsView(); break;
-        case "attendance": html = attendanceView(); break;
+        case "results":
+          html = state.role === "teacher" ? teacherResultsView()
+            : state.role === "admin" ? adminResultsView()
+            : resultsView();
+          break;
+        case "attendance":
+          html = state.role === "teacher" ? teacherAttendanceView() : attendanceView();
+          break;
+        case "classes": html = teacherClassesView(); break;
         case "timetable": html = timetableView(); break;
         case "fees": html = feesView(); break;
+        case "students": html = adminStudentsView(); break;
+        case "staff": html = adminStaffView(); break;
+        case "academics": html = adminAcademicsView(); break;
+        case "admissions": html = adminAdmissionsView(); break;
+        case "finance": html = adminFinanceView(); break;
         case "announcements": html = announcementsView(); break;
         default: html = overviewView();
       }
@@ -902,6 +1083,16 @@
 
     root.innerHTML = html;
     hydrateCharts();
+    afterViewRender();
+  }
+
+  function afterViewRender() {
+    if (state.role === "teacher" && state.section === "attendance") {
+      loadAttendanceWorkspace(false);
+    }
+    if ((state.role === "teacher" || state.role === "admin") && state.section === "results" && state.resultSheet) {
+      loadResultSheetWorkspace();
+    }
   }
 
   function hydrateCharts() {
@@ -944,7 +1135,7 @@
   }
 
   function navigate(key) {
-    if (!sectionExists(key)) return;
+    if (!state.ready || !sectionExists(key)) return;
     closeDrawer(false);
     closeAllPopovers();
     if (window.location.hash === "#" + key) {
@@ -958,6 +1149,7 @@
   }
 
   function onHashChange() {
+    if (!state.ready) return;
     var key = hashKey();
     if (!sectionExists(key)) {
       state.section = "overview";
@@ -969,27 +1161,6 @@
     }
     state.section = key;
     state.annFilter = "All";
-    render();
-    focusMain();
-  }
-
-  function setRole(role) {
-    if (!ROLES[role] || role === state.role) return;
-    state.role = role;
-    state.annFilter = "All";
-    var cfg = ROLES[role];
-    if (cfg.childIds) {
-      state.childId = cfg.childIds.indexOf(state.childId) !== -1 ? state.childId : cfg.childIds[0];
-    }
-    if (!sectionExists(state.section)) state.section = "overview";
-    try { window.localStorage.setItem("alfalaah.portal.role", role); } catch (e) { /* ignore */ }
-
-    var url = new URL(window.location.href);
-    url.searchParams.set("role", role);
-    url.hash = state.section;
-    try { window.history.replaceState(null, "", url.toString()); } catch (e) { /* ignore */ }
-
-    closeAllPopovers();
     render();
     focusMain();
   }
@@ -1060,15 +1231,63 @@
     }, 4200);
   }
 
-  function markAllRead() {
-    readAll[state.role] = true;
-    renderNotifications();
-    icons();
-    toast("All notifications marked as read.");
+  async function markAllRead() {
+    var cfg = ROLES[state.role];
+    try {
+      await API.post("/notifications/read-all", {});
+      cfg.notifications.forEach(function (notification) { notification.unread = false; });
+      renderNotifications();
+      icons();
+      toast("All notifications marked as read.");
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+    }
+  }
+
+  async function markNotificationRead(button) {
+    var id = button.getAttribute("data-notification");
+    var cfg = ROLES[state.role];
+    var notification = cfg.notifications.filter(function (item) { return item.id === id; })[0];
+    if (!notification) return;
+
+    if (notification.unread) {
+      try {
+        await API.patch("/notifications/" + encodeURIComponent(id) + "/read", {});
+        notification.unread = false;
+        renderNotifications();
+        icons();
+      } catch (error) {
+        if (API.isAuthError(error)) return handleAuthFailure();
+        toast(API.message(error));
+        return;
+      }
+    }
+
+    closeAllPopovers();
+    if (notification.type === "announcement") navigate("announcements");
+    else if (notification.type === "result") navigate("results");
+    else if (notification.type === "fee") navigate("fees");
+    else if (notification.type === "attendance") navigate(state.role === "teacher" ? "attendance" : "attendance");
+    else navigate("overview");
+  }
+
+  function handleAuthFailure() {
+    closeAllPopovers();
+    window.location.replace("portal.html");
+  }
+
+  async function signOut() {
+    try {
+      await API.logout();
+    } catch (error) {
+      /* The local session is cleared even when the network call fails. */
+    }
+    window.location.replace("portal.html");
   }
 
   /* ============================================================
-     12. EVENTS
+     12. EVENT HANDLERS
      ============================================================ */
   function onDocumentClick(event) {
     if (event.target.closest("[data-drawer-open]")) { openDrawer(); return; }
@@ -1089,19 +1308,84 @@
       return;
     }
 
-    if (event.target.closest("[data-read-all]")) { markAllRead(); return; }
+    if (event.target.closest("[data-read-all]")) { event.preventDefault(); markAllRead(); return; }
+
+    var notificationBtn = event.target.closest("[data-notification]");
+    if (notificationBtn) {
+      event.preventDefault();
+      markNotificationRead(notificationBtn);
+      return;
+    }
+
+    if (event.target.closest("[data-logout]")) {
+      event.preventDefault();
+      signOut();
+      return;
+    }
+
+    if (event.target.closest("[data-retry-load]")) {
+      event.preventDefault();
+      initPortal();
+      return;
+    }
+
+    if (event.target.closest("[data-print]")) {
+      event.preventDefault();
+      window.print();
+      return;
+    }
+
+    if (event.target.closest("[data-attendance-retry]")) {
+      event.preventDefault();
+      loadAttendanceWorkspace(true);
+      return;
+    }
+
+    var resultOpen = event.target.closest("[data-result-open]");
+    if (resultOpen) {
+      event.preventDefault();
+      openResultSheet(resultOpen);
+      return;
+    }
+
+    if (event.target.closest("[data-result-back]")) {
+      event.preventDefault();
+      state.resultSheet = null;
+      renderView();
+      icons();
+      return;
+    }
+
+    if (event.target.closest("[data-result-retry]")) {
+      event.preventDefault();
+      if (state.resultSheet) {
+        state.resultSheet.error = null;
+        state.resultSheet.loading = false;
+      }
+      loadResultSheetWorkspace();
+      return;
+    }
+
+    var resultAction = event.target.closest("[data-result-action]");
+    if (resultAction) {
+      event.preventDefault();
+      var action = resultAction.getAttribute("data-result-action");
+      if (action === "submit") submitCurrentResultSheet(resultAction);
+      if (action === "approve") approveCurrentResultSheet(resultAction);
+      if (action === "return") returnCurrentResultSheet(resultAction);
+      return;
+    }
+
+    if (event.target.closest("[data-publish-term]")) {
+      event.preventDefault();
+      publishCurrentTerm(event.target.closest("[data-publish-term]"));
+      return;
+    }
 
     var viewLink = event.target.closest("[data-view]");
     if (viewLink) {
       event.preventDefault();
       navigate(viewLink.getAttribute("data-view"));
-      return;
-    }
-
-    var demo = event.target.closest("[data-demo]");
-    if (demo) {
-      event.preventDefault();
-      toast(demo.getAttribute("data-demo"));
       return;
     }
 
@@ -1127,8 +1411,43 @@
     if (!event.target.closest(".popover-wrap")) closeAllPopovers();
   }
 
+  function onDocumentSubmit(event) {
+    var form = event.target;
+    if (form.matches("[data-attendance-filter]")) {
+      event.preventDefault();
+      readAttendanceFilter(form);
+      loadAttendanceWorkspace(true);
+      return;
+    }
+    if (form.matches("[data-attendance-form]")) {
+      event.preventDefault();
+      submitAttendance(form);
+      return;
+    }
+    if (form.matches("[data-result-form]")) {
+      event.preventDefault();
+      saveResultSheet(form);
+    }
+  }
+
+  function onDocumentChange(event) {
+    var filter = event.target.closest("[data-attendance-filter]");
+    if (filter) {
+      readAttendanceFilter(filter);
+      loadAttendanceWorkspace(true);
+      return;
+    }
+
+    var score = event.target.closest("[data-result-score]");
+    if (score) {
+      updateResultRowTotal(score);
+    }
+  }
+
   function bindEvents() {
     document.addEventListener("click", onDocumentClick);
+    document.addEventListener("submit", onDocumentSubmit);
+    document.addEventListener("change", onDocumentChange);
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", function () {
       if (window.innerWidth > 1024) closeDrawer(false);
@@ -1140,39 +1459,65 @@
       closeAllPopovers();
       closeDrawer(true);
     });
-
-    var select = document.getElementById("roleSelect");
-    if (select) {
-      select.addEventListener("change", function (event) {
-        setRole(event.target.value);
-      });
-    }
   }
 
   /* ============================================================
      13. INIT
      ============================================================ */
-  function init() {
-    var params = new URLSearchParams(window.location.search);
-    var roleParam = params.get("role");
+  var eventsBound = false;
+  var loading = false;
 
-    if (ROLES[roleParam]) {
-      state.role = roleParam;
-    } else {
-      try {
-        var saved = window.localStorage.getItem("alfalaah.portal.role");
-        if (ROLES[saved]) state.role = saved;
-      } catch (e) { /* ignore */ }
+  async function initPortal() {
+    if (loading) return;
+    loading = true;
+    state.ready = false;
+
+    var root = document.getElementById("viewRoot");
+    if (root) {
+      root.innerHTML = '<div class="view-loading"><span class="loading-dot" aria-hidden="true"></span> Loading your secure portal\u2026</div>';
     }
 
-    var cfg = ROLES[state.role];
-    state.childId = cfg.childIds ? cfg.childIds[0] : null;
+    if (!eventsBound) {
+      bindEvents();
+      eventsBound = true;
+    }
 
-    var key = hashKey();
-    state.section = sectionExists(key) ? key : "overview";
+    if (!API) {
+      renderLoadError("The portal client did not load. Refresh the page to try again.", true);
+      loading = false;
+      return;
+    }
 
-    bindEvents();
-    render();
+    try {
+      var user = await API.bootstrap();
+      if (!user) {
+        window.location.replace("portal.html");
+        return;
+      }
+
+      var data = await loadPortalData();
+      hydratePortal(data);
+      if (data.failures && data.failures.length) {
+        toast("Some optional portal data could not be refreshed.");
+      }
+      render();
+    } catch (error) {
+      if (API.isAuthError(error)) {
+        handleAuthFailure();
+        return;
+      }
+      if (error && error.status === 403) {
+        renderLoadError("Your secure session needs to be refreshed. Sign in again to continue.", false);
+      } else {
+        renderLoadError(API.message(error), true);
+      }
+    } finally {
+      loading = false;
+    }
+  }
+
+  function init() {
+    initPortal();
   }
 
   if (document.readyState === "loading") {
@@ -1225,18 +1570,18 @@
 
     return panel({
       title: "Results snapshot",
-      sub: r.term + " \u00B7 published " + r.published,
+      sub: r.published ? r.term + " \u00B7 published " + r.published : r.term,
       action: '<a class="link-arrow" href="#results" data-view="results">Full results <i data-lucide="arrow-right"></i></a>',
-      body: '<div class="meter-list">' + rows + "</div>" +
-        '<div class="average-strip"><span>Term average</span><strong>' + r.average.toFixed(1) +
-        "%</strong><em>" + ordinal(r.position) + " of " + r.classSize + "</em></div>"
+      body: r.subjects.length
+        ? '<div class="meter-list">' + rows + "</div>" +
+          '<div class="average-strip"><span>Term average</span><strong>' + numberText(r.average) +
+          "%</strong><em>" + (r.position ? ordinal(r.position) + " of " + r.classSize : "Position pending") + "</em></div>"
+        : emptyState("graduation-cap", "No published results yet", "Results appear here after the term is approved and published.")
     });
   }
 
-  function announcementsFor(roleKey) {
-    return ANNOUNCEMENTS.filter(function (a) {
-      return a.audience.indexOf(roleKey) !== -1;
-    });
+  function announcementsFor() {
+    return ANNOUNCEMENTS;
   }
 
   function announcementsPanel(roleKey, title, sub, limit) {
@@ -1257,13 +1602,13 @@
 
   function feePanel(student) {
     var f = student.fees;
-    var pct = Math.round((f.paid / f.total) * 100);
+    var pct = f.total > 0 ? Math.round((f.paid / f.total) * 100) : 0;
     var balanceRow = f.balance > 0
       ? '<strong class="is-balance">' + money(f.balance) + "</strong>"
       : '<strong class="is-cleared">Cleared</strong>';
 
     var action = f.balance > 0
-      ? '<button class="btn btn--gold btn--sm btn--block mt-2" type="button" data-demo="Online fee payment arrives with the backend. Meanwhile, payments are receipted at the school accounts office.">Pay ' + money(f.balance) + "</button>"
+      ? '<p class="small muted mt-1">Settle at the school accounts office or by bank transfer.</p>'
       : '<p class="small muted mt-1">Fully paid \u2014 shukran.</p>';
 
     return panel({
@@ -1295,36 +1640,49 @@
     });
   }
 
+  function upNextList(student) {
+    if (!student.upNext.length) {
+      return emptyState("calendar-check", "No upcoming lessons", "The timetable will show the next lessons when school is in session.");
+    }
+    return '<ol class="lesson-list">' + student.upNext.map(function (lesson, index) {
+      return '<li class="lesson' + (index === 0 ? " is-next" : "") + '">' +
+        '<span class="lesson__time">' + esc(splitTime(lesson.time).start) + "<small>" + esc(splitTime(lesson.time).end) + "</small></span>" +
+        '<div class="lesson__body"><strong>' + esc(lesson.subject) + "</strong>" +
+        "<span>" + esc(lesson.date_label || "") + " \u00B7 " + esc(lesson.teacher || "") + " \u00B7 " + esc(lesson.room || "") + "</span></div>" +
+        (index === 0 ? statusPill("Next", "gold") : '<span class="lesson__period">Period ' + esc(lesson.period) + "</span>") +
+        "</li>";
+    }).join("") + "</ol>";
+  }
+
+  function resultsStats(student) {
+    var r = student.results;
+    return [
+      stat({ icon: "clipboard-check", label: "Attendance", value: student.attendance.rate + "%", meta: student.attendance.present + " of " + student.attendance.days + " school days" }),
+      stat({ icon: "trending-up", label: "Term average", value: r.average === null ? "\u2014" : numberText(r.average) + "%", meta: r.term }),
+      stat({ icon: "award", label: "Class position", value: r.position ? ordinal(r.position) : "\u2014", meta: r.classSize ? "of " + r.classSize + " students" : "Not published" }),
+      feeStat(student)
+    ];
+  }
+
   /* ---------- Student ---------- */
   function studentOverview() {
     var student = currentStudent();
-    var monday = student.timetable.days.Monday;
-    var periods = student.timetable.periods;
-
-    var upNext = '<ol class="lesson-list">' + monday.slice(0, 4).map(function (lesson, i) {
-      return lessonRow(lesson, periods[i].time, i === 0, periods[i].label);
-    }).join("") + "</ol>";
 
     return pageHead({
       eyebrow: "Student dashboard",
       title: "Assalamu Alaikum, " + esc(firstName(student.name)),
       lead: "Here is your school day at a glance.",
-      actions: '<span class="term-chip"><i data-lucide="calendar-clock"></i>' + SCHOOL.week + " \u00B7 " + SCHOOL.term + "</span>" +
-        demoBtn("Report card", "download", "Report cards are generated from published results in the backend build.", "gold")
+      actions: '<span class="term-chip"><i data-lucide="calendar-clock"></i>' + esc((SCHOOL.week ? SCHOOL.week + " \u00B7 " : "") + SCHOOL.term) + "</span>" +
+        '<button class="btn btn--gold" type="button" data-print><i data-lucide="printer"></i> Print results</button>'
     }) +
     profileBanner(student, "student") +
-    statGrid([
-      stat({ icon: "clipboard-check", label: "Attendance", value: student.attendance.rate + "%", meta: student.attendance.present + " of " + student.attendance.days + " school days" }),
-      stat({ icon: "trending-up", label: "Term average", value: student.results.average.toFixed(1) + "%", meta: student.results.term }),
-      stat({ icon: "award", label: "Class position", value: ordinal(student.results.position), meta: "of " + student.results.classSize + " students" }),
-      feeStat(student)
-    ]) +
+    statGrid(resultsStats(student)) +
     '<div class="dash-grid dash-grid--main">' +
       panel({
         title: "Up next",
-        sub: "Monday, 26 October \u00B7 6 periods",
+        sub: student.upNext.length ? student.upNext[0].date_label + " \u00B7 " + student.upNext.length + " lessons" : "Your next lessons",
         action: '<a class="link-arrow" href="#timetable" data-view="timetable">Full timetable <i data-lucide="arrow-right"></i></a>',
-        body: upNext
+        body: upNextList(student)
       }) +
       resultsSnapshotPanel(student) +
     "</div>" +
@@ -1332,7 +1690,9 @@
       panel({
         title: "Homework & tasks",
         sub: student.assignments.length + " active tasks",
-        body: taskList(student.assignments)
+        body: student.assignments.length
+          ? taskList(student.assignments)
+          : emptyState("book-open", "No tasks right now", "New assignments from your teachers will appear here.")
       }) +
       announcementsPanel("student", "Announcements", "Latest from the school", 3) +
     "</div>";
@@ -1345,17 +1705,12 @@
     return pageHead({
       eyebrow: "Parent dashboard",
       title: "Assalamu Alaikum, " + esc(ROLES.parent.shortName),
-      lead: "You are viewing " + esc(student.name) + "'s records for " + SCHOOL.term + " " + SCHOOL.session + ".",
+      lead: "You are viewing " + esc(student.name) + "'s records for " + esc(SCHOOL.label || SCHOOL.term) + ".",
       actions: childSwitch() +
-        demoBtn("Report card", "download", "Report cards are generated from published results in the backend build.", "gold")
+        '<button class="btn btn--gold" type="button" data-print><i data-lucide="printer"></i> Print report</button>'
     }) +
     profileBanner(student, "parent") +
-    statGrid([
-      stat({ icon: "clipboard-check", label: "Attendance", value: student.attendance.rate + "%", meta: student.attendance.present + " of " + student.attendance.days + " school days" }),
-      stat({ icon: "trending-up", label: "Term average", value: student.results.average.toFixed(1) + "%", meta: student.results.term }),
-      stat({ icon: "award", label: "Class position", value: ordinal(student.results.position), meta: "of " + student.results.classSize + " students" }),
-      feeStat(student)
-    ]) +
+    statGrid(resultsStats(student)) +
     '<div class="dash-grid dash-grid--main">' +
       resultsSnapshotPanel(student) +
       feePanel(student) +
@@ -1363,9 +1718,10 @@
     '<div class="dash-grid dash-grid--2">' +
       attendancePanel(student) +
       panel({
-        title: "Upcoming events",
-        sub: "Dates for your diary",
-        body: eventList()
+        title: "Up next",
+        sub: student.upNext.length ? student.upNext[0].date_label : "Next lessons",
+        action: '<a class="link-arrow" href="#timetable" data-view="timetable">Full timetable <i data-lucide="arrow-right"></i></a>',
+        body: upNextList(student)
       }) +
     "</div>" +
     announcementsPanel("parent", "Announcements", "Notices for parents", 3);
@@ -1374,45 +1730,52 @@
   /* ---------- Teacher ---------- */
   function teacherOverview() {
     var t = TEACHER;
+    var stats = t.stats || {};
 
-    var schedule = '<ol class="lesson-list">' + t.schedule.map(function (lesson) {
-      return '<li class="lesson' + (lesson.next ? " is-next" : "") + '">' +
-        '<span class="lesson__time">' + esc(splitTime(lesson.time).start) + "<small>" + esc(splitTime(lesson.time).end) + "</small></span>" +
-        '<div class="lesson__body"><strong>' + esc(lesson.klass) + " \u00B7 " + esc(lesson.subject) + "</strong>" +
-        "<span>" + esc(lesson.time) + " \u00B7 Room " + esc(lesson.room) + "</span></div>" +
-        (lesson.next ? statusPill("Next", "gold") : '<span class="lesson__period">' + esc(lesson.period) + "</span>") +
-        "</li>";
-    }).join("") + "</ol>";
+    var schedule = t.schedule.length
+      ? '<ol class="lesson-list">' + t.schedule.map(function (lesson, index) {
+          return '<li class="lesson' + (index === 0 ? " is-next" : "") + '">' +
+            '<span class="lesson__time">' + esc(splitTime(lesson.time).start) + "<small>" + esc(splitTime(lesson.time).end) + "</small></span>" +
+            '<div class="lesson__body"><strong>' + esc(lesson.klass) + " \u00B7 " + esc(lesson.subject) + "</strong>" +
+            "<span>" + esc(lesson.period) + " \u00B7 Room " + esc(lesson.room) + "</span></div>" +
+            '<span class="lesson__period">' + esc(lesson.period) + "</span>" +
+            "</li>";
+        }).join("") + "</ol>"
+      : emptyState("calendar-check", "No lessons scheduled", "Your timetable for today is clear.");
 
-    var registers = '<ul class="register-list">' + t.pendingRegisters.map(function (r) {
-      return '<li class="register">' +
-        '<span class="register__icon"><i data-lucide="clipboard-check"></i></span>' +
-        '<div class="register__body"><strong>' + esc(r.klass) + "</strong><span>" + esc(r.period) + " \u00B7 " + esc(r.time) + " \u00B7 " + r.students + " students</span></div>" +
-        '<button class="btn btn--ghost" type="button" data-demo="Attendance marking opens with the backend build.">Mark</button>' +
-        "</li>";
-    }).join("") + "</ul>";
+    var registers = t.pendingRegisters.length
+      ? '<ul class="register-list">' + t.pendingRegisters.map(function (r) {
+          return '<li class="register">' +
+            '<span class="register__icon"><i data-lucide="clipboard-check"></i></span>' +
+            '<div class="register__body"><strong>' + esc(r.klass) + "</strong><span>" + esc(r.period) + " \u00B7 " + esc(r.time) + " \u00B7 " + r.students + " students</span></div>" +
+            '<button class="btn btn--ghost" type="button" data-view="attendance">Mark</button>' +
+            "</li>";
+        }).join("") + "</ul>"
+      : emptyState("check-circle-2", "All registers marked", "There are no pending attendance registers for today.");
 
-    var performance = '<div class="meter-list">' + t.classPerformance.map(function (row) {
-      return meterRow(row.klass, row.average, row.average + "%");
-    }).join("") + "</div>";
+    var performance = t.classPerformance.length
+      ? '<div class="meter-list">' + t.classPerformance.map(function (row) {
+          return meterRow(row.klass, row.average, numberText(row.average) + "%");
+        }).join("") + "</div>"
+      : emptyState("trending-up", "No class averages yet", "Class performance appears after results are submitted.");
 
     return pageHead({
       eyebrow: "Teacher dashboard",
       title: "Assalamu Alaikum, " + esc(ROLES.teacher.shortName),
       lead: "Your classes and tasks for today.",
-      actions: demoBtn("Mark register", "clipboard-check", "Attendance marking opens with the backend build.", "gold") +
-        demoBtn("Enter results", "file-check-2", "Results entry opens with the backend build.")
+      actions: '<button class="btn btn--gold" type="button" data-view="attendance"><i data-lucide="clipboard-check"></i> Mark register</button>' +
+        '<button class="btn btn--ghost" type="button" data-view="results"><i data-lucide="file-check-2"></i> Results entry</button>'
     }) +
     statGrid([
-      stat({ icon: "presentation", label: "Lessons today", value: t.stats.lessons, meta: "Across 4 classes" }),
-      stat({ icon: "clipboard-check", label: "Registers pending", value: t.stats.registers, meta: "JSS 1A and JSS 3A", alert: true }),
-      stat({ icon: "file-check-2", label: "Result sheets due", value: t.stats.sheets, meta: "Due Wed, 28 Oct" }),
-      stat({ icon: "users", label: "Students taught", value: t.stats.students, meta: "This term" })
+      stat({ icon: "presentation", label: "Lessons today", value: asNumber(stats.lessons_today), meta: "Across " + asNumber(stats.classes) + " classes" }),
+      stat({ icon: "clipboard-check", label: "Registers pending", value: asNumber(stats.pending_registers), meta: t.pendingRegisters.length ? t.pendingRegisters.map(function (r) { return r.klass; }).join(" and ") : "All marked", alert: asNumber(stats.pending_registers) > 0 }),
+      stat({ icon: "file-check-2", label: "Result sheets due", value: asNumber(stats.sheets_outstanding), meta: SCHOOL.label || SCHOOL.term || "This term" }),
+      stat({ icon: "users", label: "Students taught", value: asNumber(stats.students), meta: "This term" })
     ]) +
     '<div class="dash-grid dash-grid--main">' +
       panel({
         title: "Today's schedule",
-        sub: "Monday, 26 October \u00B7 4 lessons",
+        sub: t.schedule.length + " lesson" + (t.schedule.length === 1 ? "" : "s"),
         body: schedule
       }) +
       panel({
@@ -1434,12 +1797,14 @@
   /* ---------- Admin ---------- */
   function adminOverview() {
     var a = ADMIN;
-    var maxLevel = Math.max.apply(null, a.levels.map(function (l) { return l.count; }));
+    var maxLevel = Math.max.apply(null, a.levels.map(function (l) { return l.count; }).concat([1]));
 
-    var levels = '<div class="meter-list">' + a.levels.map(function (level) {
-      return meterRow(level.label, Math.round((level.count / maxLevel) * 100), level.count);
-    }).join("") + "</div>" +
-    '<p class="small muted mt-2">' + a.stats.students + " students enrolled across four levels.</p>";
+    var levels = a.levels.length
+      ? '<div class="meter-list">' + a.levels.map(function (level) {
+          return meterRow(level.label, Math.round((level.count / maxLevel) * 100), level.count);
+        }).join("") + "</div>" +
+        '<p class="small muted mt-2">' + a.stats.students + " students enrolled across " + a.levels.length + " levels.</p>"
+      : emptyState("users", "No enrolment data", "Student counts will appear here once records are available.");
 
     var pipeline = '<div class="pipeline">' + a.pipeline.map(function (step) {
       return '<div class="pipeline__step"><span class="pipeline__num">' + step.count + "</span>" +
@@ -1453,29 +1818,29 @@
         esc(row.teacher),
         esc(row.submitted),
         statusPill(row.status, row.tone),
-        '<button class="btn btn--ghost btn--sm" type="button" data-demo="Result approval workflow arrives with the backend build.">Review</button>'
+        '<button class="btn btn--ghost btn--sm" type="button" data-view="results">Review</button>'
       ];
     });
 
     var quickActions = [
-      { icon: "user-plus", title: "Add student", meta: "Enrol a new learner", msg: "Student enrolment opens with the backend build." },
-      { icon: "megaphone", title: "Publish announcement", meta: "Notify parents & staff", msg: "Publishing announcements opens with the backend build." },
-      { icon: "wallet", title: "Record payment", meta: "Log a fee payment", msg: "Fee recording opens with the backend build." },
-      { icon: "clipboard-check", title: "Review results", meta: "Approve submitted sheets", msg: "Result approval opens with the backend build." }
+      { icon: "users", title: "Student register", meta: "Browse every learner", view: "students" },
+      { icon: "megaphone", title: "Announcements", meta: "School-wide notices", view: "announcements" },
+      { icon: "wallet", title: "Fees & finance", meta: "Invoices and payments", view: "finance" },
+      { icon: "clipboard-check", title: "Result approvals", meta: "Submitted sheets", view: "results" }
     ];
 
     return pageHead({
       eyebrow: "Administration dashboard",
       title: "Assalamu Alaikum, " + esc(ROLES.admin.shortName),
       lead: "A live view of the school at a glance.",
-      actions: demoBtn("Publish announcement", "megaphone", "Publishing announcements opens with the backend build.", "gold") +
-        demoBtn("Add student", "user-plus", "Student enrolment opens with the backend build.")
+      actions: '<button class="btn btn--gold" type="button" data-view="announcements"><i data-lucide="megaphone"></i> Announcements</button>' +
+        '<button class="btn btn--ghost" type="button" data-view="students"><i data-lucide="users"></i> Students</button>'
     }) +
     statGrid([
       stat({ icon: "users", label: "Students", value: a.stats.students, meta: "Nursery to Senior Secondary" }),
-      stat({ icon: "id-card", label: "Staff", value: a.stats.staff, meta: "Teaching and non-teaching" }),
-      stat({ icon: "clipboard-check", label: "Attendance today", value: a.stats.attendance + "%", meta: "402 of 428 present" }),
-      stat({ icon: "wallet", label: "Fees collected", value: "\u20A612.4m", meta: "First Term to date" })
+      stat({ icon: "id-card", label: "Staff", value: a.stats.staff, meta: asNumber(a.stats.teachers) + " teaching staff" }),
+      stat({ icon: "clipboard-check", label: "Attendance today", value: a.stats.attendance + "%", meta: a.stats.attendanceDate ? "Recorded " + longDate(a.stats.attendanceDate) : "No register yet" }),
+      stat({ icon: "wallet", label: "Fees collected", value: compactMoney(a.stats.collected), meta: numberText(a.stats.collectionRate, 0) + "% of " + compactMoney(a.stats.collected + a.stats.outstanding) + " billed" })
     ]) +
     '<div class="dash-grid dash-grid--2">' +
       panel({
@@ -1492,22 +1857,24 @@
     panel({
       title: "Result approvals",
       sub: "Sheets submitted by teaching staff",
-      action: statusPill("2 pending", "warn"),
-      body: table(
-        [
-          { label: "Class" }, { label: "Subject" }, { label: "Teacher" },
-          { label: "Submitted" }, { label: "Status" }, { label: "Action", align: "right" }
-        ],
-        approvalRows,
-        "Result sheets awaiting approval"
-      )
+      action: statusPill(a.approvals.length + " pending", a.approvals.length ? "warn" : "ok"),
+      body: approvalRows.length
+        ? table(
+            [
+              { label: "Class" }, { label: "Subject" }, { label: "Teacher" },
+              { label: "Submitted" }, { label: "Status" }, { label: "Action", align: "right" }
+            ],
+            approvalRows,
+            "Result sheets awaiting approval"
+          )
+        : emptyState("check-circle-2", "No sheets awaiting approval", "Submitted result sheets will appear here for review.")
     }) +
     '<div class="dash-grid dash-grid--2 dash-grid--flush mt-2">' +
       panel({
         title: "Quick actions",
         sub: "Common administrative tasks",
         body: '<div class="quick-grid">' + quickActions.map(function (item) {
-          return '<button class="quick" type="button" data-demo="' + esc(item.msg) + '">' +
+          return '<button class="quick" type="button" data-view="' + item.view + '">' +
             '<span class="quick__icon"><i data-lucide="' + item.icon + '"></i></span>' +
             "<span><strong>" + esc(item.title) + "</strong><span>" + esc(item.meta) + "</span></span></button>";
         }).join("") + "</div>"
@@ -1526,13 +1893,28 @@
     var rows = r.subjects.map(function (subject) {
       return [
         "<strong>" + esc(subject.name) + "</strong>",
-        String(subject.ca),
-        String(subject.exam),
-        "<strong>" + subject.total + "</strong>",
-        '<span class="grade grade--' + subject.grade.toLowerCase() + '">' + subject.grade + "</span>",
-        esc(subject.remark)
+        numberText(subject.ca),
+        numberText(subject.exam),
+        "<strong>" + numberText(subject.total, 0) + "</strong>",
+        '<span class="grade grade--' + String(subject.grade || "").toLowerCase() + '">' + esc(subject.grade || "\u2014") + "</span>",
+        esc(subject.remark || "")
       ];
     });
+
+    var body = rows.length
+      ? table(
+          [
+            { label: "Subject" },
+            { label: "CA (40)", align: "right" },
+            { label: "Exam (60)", align: "right" },
+            { label: "Total", align: "right" },
+            { label: "Grade", align: "center" },
+            { label: "Remark" }
+          ],
+          rows,
+          "Subject results for " + student.name
+        ) + '<p class="small muted mt-2">Grading scale: A 70\u2013100 \u00B7 B 60\u201369 \u00B7 C 50\u201359 \u00B7 D 45\u201349 \u00B7 E 40\u201344 \u00B7 F below 40.</p>'
+      : emptyState("graduation-cap", "No published results", "Your report will appear here once the term results are approved and published.");
 
     return pageHead({
       eyebrow: "Academics",
@@ -1540,32 +1922,21 @@
       lead: "Published results for " + esc(student.name) + " \u00B7 " + esc(student.klass) + ".",
       actions: parentExtras() +
         '<span class="term-chip"><i data-lucide="calendar-days"></i>' + esc(r.term) + "</span>" +
-        demoBtn("Download report card", "download", "Report card generation and PDF download arrive with the backend build.", "gold")
+        '<button class="btn btn--gold" type="button" data-print><i data-lucide="printer"></i> Print report</button>'
     }) +
     statGrid([
-      stat({ icon: "trending-up", label: "Term average", value: r.average.toFixed(1) + "%", meta: r.term }),
-      stat({ icon: "award", label: "Class position", value: ordinal(r.position), meta: "of " + r.classSize + " students" }),
+      stat({ icon: "trending-up", label: "Term average", value: r.average === null ? "\u2014" : numberText(r.average) + "%", meta: r.term }),
+      stat({ icon: "award", label: "Class position", value: r.position ? ordinal(r.position) : "\u2014", meta: r.classSize ? "of " + r.classSize + " students" : "Not published" }),
       stat({ icon: "book-open", label: "Subjects offered", value: r.subjects.length, meta: "All assessed" }),
-      stat({ icon: "check-circle-2", label: "Result status", value: "Published", meta: "Released " + r.published })
+      stat({ icon: "check-circle-2", label: "Result status", value: r.published ? "Published" : "Pending", meta: r.published ? "Released " + r.published : "Awaiting publication" })
     ]) +
     panel({
       title: "Subject performance",
-      sub: r.term + " \u00B7 published " + r.published,
-      action: statusPill("Approved", "ok"),
-      body: table(
-        [
-          { label: "Subject" },
-          { label: "CA (40)", align: "right" },
-          { label: "Exam (60)", align: "right" },
-          { label: "Total", align: "right" },
-          { label: "Grade", align: "center" },
-          { label: "Remark" }
-        ],
-        rows,
-        "Subject results for " + student.name
-      ) + '<p class="small muted mt-2">Grading scale: A 70\u2013100 \u00B7 B 60\u201369 \u00B7 C 50\u201359 \u00B7 D 45\u201349 \u00B7 E 40\u201344 \u00B7 F below 40.</p>'
+      sub: r.published ? r.term + " \u00B7 published " + r.published : r.term,
+      action: statusPill(r.published ? "Approved" : "Pending", r.published ? "ok" : "warn"),
+      body: body
     }) +
-    callout("info", "<strong>First Term " + SCHOOL.session + ":</strong> mid-term assessment is in progress. Results will be published here after the term examinations and approved by the administration.");
+    callout("info", "<strong>" + esc(SCHOOL.label || SCHOOL.term) + ":</strong> results are published only after the term's result sheets are approved by the administration. Contact the school office if a published result appears incorrect.");
   }
 
   /* ============================================================
@@ -1589,7 +1960,7 @@
       title: "Attendance record",
       lead: "Daily attendance for " + esc(student.name) + " \u00B7 " + esc(student.klass) + ".",
       actions: parentExtras() +
-        demoBtn("Download record", "download", "Attendance export arrives with the backend build.")
+        '<button class="btn btn--ghost" type="button" data-print><i data-lucide="printer"></i> Print record</button>'
     }) +
     '<div class="dash-grid dash-grid--2">' +
       panel({
@@ -1614,11 +1985,13 @@
       title: "Recent records",
       sub: "Last 8 school days",
       action: statusPill("Live record", "info"),
-      body: table(
-        [{ label: "Date" }, { label: "Day" }, { label: "Status" }, { label: "Note" }],
-        rows,
-        "Recent attendance records for " + student.name
-      )
+      body: rows.length
+        ? table(
+            [{ label: "Date" }, { label: "Day" }, { label: "Status" }, { label: "Note" }],
+            rows,
+            "Recent attendance records for " + student.name
+          )
+        : emptyState("clipboard-check", "No attendance records", "Daily registers will appear here once classes begin.")
     });
   }
 
@@ -1660,7 +2033,7 @@
       title: "Weekly timetable",
       lead: esc(student.klass) + " \u00B7 " + SCHOOL.term + " " + SCHOOL.session + ".",
       actions: parentExtras() +
-        demoBtn("Print timetable", "printer", "Printing opens with the backend build.")
+        '<button class="btn btn--ghost" type="button" data-print><i data-lucide="printer"></i> Print timetable</button>'
     }) +
     panel({
       title: "Class timetable",
@@ -1682,7 +2055,7 @@
   function feesView() {
     var student = currentStudent();
     var f = student.fees;
-    var pct = Math.round((f.paid / f.total) * 100);
+    var pct = f.total > 0 ? Math.round((f.paid / f.total) * 100) : 0;
 
     var invoiceRows = f.invoices.map(function (invoice) {
       return [
@@ -1712,7 +2085,7 @@
       title: "Fees & payments",
       lead: "Fee statement for " + esc(student.name) + " \u00B7 " + esc(student.klass) + ".",
       actions: parentExtras() +
-        demoBtn("Download statement", "download", "Fee statements will be generated from live payment records in the backend build.", "gold")
+        '<button class="btn btn--gold" type="button" data-print><i data-lucide="printer"></i> Print statement</button>'
     }) +
     '<section class="fee-hero">' +
       '<div class="fee-hero__main">' +
@@ -1724,9 +2097,9 @@
         '<div class="fee-hero__row"><span>Total billed</span><strong>' + money(f.total) + "</strong></div>" +
         '<div class="fee-hero__row"><span>Paid to date</span><strong>' + money(f.paid) + "</strong></div>" +
         '<div class="meter meter--on-dark"><span class="meter__fill" data-meter="' + pct + '"></span></div>' +
-        (f.balance > 0
-          ? '<button class="btn btn--gold" type="button" data-demo="Online fee payment arrives with the backend build. Payments are currently receipted at the school accounts office.">Pay ' + money(f.balance) + "</button>"
-          : '<button class="btn btn--gold" type="button" data-demo="Receipt download arrives with the backend build.">Download receipt</button>') +
+        '<p class="small" style="color:rgba(255,255,255,.78);">' + (f.balance > 0
+          ? "Payments are receipted at the school accounts office or by bank transfer."
+          : "Fully paid \u2014 shukran.") + "</p>" +
       "</div>" +
     "</section>" +
     '<div class="dash-grid dash-grid--2">' +
@@ -1757,7 +2130,7 @@
           : emptyState("wallet", "No payments yet", "Receipted payments will appear here.")
       }) +
     "</div>" +
-    callout("info", "All payments are receipted by the school accounts office. Online payment and downloadable statements will be enabled once the backend is connected.");
+    callout("info", "All payments are receipted by the school accounts office. Keep your payment reference for any enquiry.");
   }
 
   /* ============================================================
@@ -1798,28 +2171,1006 @@
   }
 
   /* ============================================================
-     20. MODULE PREVIEW (teacher + admin)
+     20. TEACHER VIEWS
      ============================================================ */
-  function moduleView(item) {
-    var mod = item.module || { summary: "", features: [], backend: "" };
+  function teacherClassesView() {
+    var t = TEACHER;
+    var rows = t.classes.map(function (classroom) {
+      return [
+        "<strong>" + esc(classroom.name) + "</strong>",
+        esc(classroom.level_label || classroom.level || ""),
+        String(asNumber(classroom.students)),
+        classroom.average === null || classroom.average === undefined
+          ? '<span class="muted">\u2014</span>'
+          : numberText(classroom.average) + "%"
+      ];
+    });
 
     return pageHead({
-      eyebrow: ROLES[state.role].label + " module",
-      title: item.label,
-      lead: mod.summary,
-      actions: statusPill("Planned for the backend", "gold")
+      eyebrow: "Teaching",
+      title: "My classes",
+      lead: "The classes and subjects assigned to you for " + esc(SCHOOL.label || SCHOOL.term) + ".",
+      actions: '<button class="btn btn--gold" type="button" data-view="attendance"><i data-lucide="clipboard-check"></i> Mark register</button>' +
+        '<button class="btn btn--ghost" type="button" data-view="results"><i data-lucide="file-check-2"></i> Results entry</button>'
     }) +
-    '<section class="panel module-card"><div class="panel__body">' +
-      '<div class="module-card__top">' +
-        '<span class="module-card__icon"><i data-lucide="' + item.icon + '"></i></span>' +
-        "<div><h2>What this module will include</h2><p>" + esc(mod.summary) + "</p></div>" +
-      "</div>" +
-      '<ul class="module-card__list">' + mod.features.map(function (feature) {
-        return '<li><i data-lucide="check"></i><span>' + esc(feature) + "</span></li>";
-      }).join("") + "</ul>" +
-      callout("database", "<strong>Backend contract:</strong> " + esc(mod.backend)) +
-      '<button class="btn btn--primary mt-3" type="button" data-view="overview"><i data-lucide="arrow-left"></i> Back to overview</button>' +
-    "</div></section>";
+    statGrid([
+      stat({ icon: "presentation", label: "Classes", value: asNumber(t.stats.classes), meta: "This term" }),
+      stat({ icon: "users", label: "Students", value: asNumber(t.stats.students), meta: "Active learners" }),
+      stat({ icon: "calendar-check", label: "Lessons today", value: asNumber(t.stats.lessons_today), meta: "Monday timetable" }),
+      stat({ icon: "file-check-2", label: "Sheets outstanding", value: asNumber(t.stats.sheets_outstanding), meta: "Awaiting entry or submission", alert: asNumber(t.stats.sheets_outstanding) > 0 })
+    ]) +
+    panel({
+      title: "Class list",
+      sub: rows.length + " class" + (rows.length === 1 ? "" : "es"),
+      body: rows.length
+        ? table(
+            [{ label: "Class" }, { label: "Level" }, { label: "Students", align: "right" }, { label: "Average", align: "right" }],
+            rows,
+            "Classes assigned to you"
+          )
+        : emptyState("users", "No classes assigned", "Speak to the school administration if a class is missing.")
+    });
+  }
+
+  function attendanceState() {
+    if (!state.attendance) {
+      state.attendance = {
+        classId: null,
+        date: todayISO(),
+        data: null,
+        loadedKey: "",
+        loading: false,
+        error: null
+      };
+    }
+    var attendance = state.attendance;
+    if (!attendance.classId) {
+      var pending = TEACHER.pendingRegisters[0];
+      attendance.classId = pending ? pending.classId : (TEACHER.classes[0] ? TEACHER.classes[0].id : "");
+    }
+    return attendance;
+  }
+
+  function readAttendanceFilter(form) {
+    var attendance = attendanceState();
+    var classField = form.querySelector('[name="class_id"]');
+    var dateField = form.querySelector('[name="date"]');
+    if (classField && classField.value) attendance.classId = classField.value;
+    if (dateField && dateField.value) attendance.date = dateField.value;
+  }
+
+  function teacherAttendanceView() {
+    var attendance = attendanceState();
+    var term = DATA.dashboard && DATA.dashboard.term ? DATA.dashboard.term : {};
+    var key = attendance.classId + "|" + attendance.date;
+    var options = TEACHER.classes.map(function (classroom) {
+      return '<option value="' + esc(classroom.id) + '"' + (classroom.id === attendance.classId ? " selected" : "") + ">" +
+        esc(classroom.name) + " \u00B7 " + esc(classroom.level_label || classroom.level || "") + "</option>";
+    }).join("");
+
+    var workspace;
+    if (attendance.error) {
+      workspace = '<div class="panel"><div class="panel__body">' +
+        emptyState("cloud-off", "The register could not be loaded", attendance.error) +
+        '<div class="empty-state__actions"><button class="btn btn--primary" type="button" data-attendance-retry><i data-lucide="refresh-cw"></i> Try again</button></div>' +
+        "</div></div>";
+    } else if (attendance.data && attendance.loadedKey === key) {
+      workspace = attendanceRegisterPanel(attendance.data);
+    } else {
+      workspace = '<div class="view-loading"><span class="loading-dot" aria-hidden="true"></span> Loading register\u2026</div>';
+    }
+
+    return pageHead({
+      eyebrow: "Teaching",
+      title: "Attendance register",
+      lead: "Mark the daily register for one of your classes. Every active student must be marked before saving.",
+      actions: '<span class="term-chip"><i data-lucide="calendar-days"></i>' + esc(SCHOOL.label || SCHOOL.term) + "</span>"
+    }) +
+    '<div class="dash-grid dash-grid--2">' +
+      panel({
+        title: "Choose a register",
+        sub: "Class and school day",
+        body: '<form data-attendance-filter>' +
+          '<div class="form-grid">' +
+            '<div class="field"><label for="attendanceClass">Class</label><select id="attendanceClass" name="class_id">' + options + "</select></div>" +
+            '<div class="field"><label for="attendanceDate">Date</label><input id="attendanceDate" name="date" type="date" value="' + esc(attendance.date) + '"' +
+              (term.starts_on ? ' min="' + esc(term.starts_on) + '"' : "") +
+              (term.ends_on ? ' max="' + esc(term.ends_on) + '"' : "") + " required></div>" +
+          "</div>" +
+          '<p class="small muted mt-2">Only weekdays inside the current term can be marked.</p>' +
+        "</form>"
+      }) +
+      panel({
+        title: "How registers work",
+        sub: "A complete record every school day",
+        body: callout("info", "Attendance is visible to the student, their guardians and the administration. Choose <strong>Present</strong>, <strong>Late</strong>, <strong>Absent</strong> or <strong>Excused</strong> for every learner, then save.") +
+          '<div class="legend-row"><span class="status status--ok">Present</span><span class="status status--warn">Late</span><span class="status status--danger">Absent</span><span class="status status--info">Excused</span></div>'
+      }) +
+    "</div>" +
+    '<div id="attendanceWorkspace" class="mt-2">' + workspace + "</div>";
+  }
+
+  function attendanceRegisterPanel(data) {
+    var students = Array.isArray(data.students) ? data.students : [];
+    var classInfo = data.class || {};
+    var statuses = [
+      { value: "present", label: "Present" },
+      { value: "late", label: "Late" },
+      { value: "absent", label: "Absent" },
+      { value: "excused", label: "Excused" }
+    ];
+    var markedCount = students.filter(function (student) { return !!student.status; }).length;
+
+    if (!students.length) {
+      return panel({
+        title: (classInfo.name || "Class") + " register",
+        sub: longDate(data.date),
+        body: emptyState("users", "No active students", "There are no active learners in this class yet.")
+      });
+    }
+
+    var rows = students.map(function (student) {
+      var current = String(student.status || "Present").toLowerCase();
+      var options = statuses.map(function (status) {
+        return '<option value="' + status.value + '"' + (status.value === current ? " selected" : "") + ">" + status.label + "</option>";
+      }).join("");
+      return {
+        attrs: ' data-attendance-row data-student-id="' + esc(student.student_id) + '"',
+        cells: [
+          '<div class="cell-person"><strong>' + esc(student.name) + "</strong><span>" + esc(student.admission_no || "") + "</span></div>",
+          '<select class="table-input" data-attendance-status aria-label="Attendance status for ' + esc(student.name) + '">' + options + "</select>",
+          '<input class="table-input" data-attendance-note type="text" maxlength="190" value="' + esc(student.note || "") + '" placeholder="Optional note" aria-label="Attendance note for ' + esc(student.name) + '">'
+        ]
+      };
+    });
+
+    return panel({
+      title: classInfo.name + " register",
+      sub: longDate(data.date) + " \u00B7 " + esc(data.term ? data.term.label : SCHOOL.label),
+      action: statusPill(data.marked ? "Saved" : "Unsaved", data.marked ? "ok" : "warn"),
+      body: '<form data-attendance-form data-class-id="' + esc(classInfo.id || "") + '" data-term-id="' + esc(data.term ? data.term.id : "") + '" data-date="' + esc(data.date) + '">' +
+        '<div class="register-summary"><span><strong>' + students.length + "</strong> students</span><span><strong>" + markedCount + "</strong> already marked</span>" +
+          (data.marked_at ? "<span>Last saved " + esc(data.marked_at) + "</span>" : "") + "</div>" +
+        table(
+          [{ label: "Student" }, { label: "Status" }, { label: "Note" }],
+          rows,
+          "Attendance register for " + classInfo.name
+        ) +
+        '<div class="form-actions">' +
+          '<button class="btn btn--primary" type="submit"><i data-lucide="save"></i> Save register</button>' +
+          '<p class="form-msg" role="status"></p>' +
+        "</div>" +
+      "</form>"
+    });
+  }
+
+  async function loadAttendanceWorkspace(force) {
+    var workspace = document.getElementById("attendanceWorkspace");
+    if (!workspace) return;
+    var attendance = attendanceState();
+    var key = attendance.classId + "|" + attendance.date;
+
+    if (!force && attendance.data && attendance.loadedKey === key) {
+      workspace.innerHTML = attendanceRegisterPanel(attendance.data);
+      icons();
+      return;
+    }
+    if (attendance.loading && !force) return;
+    if (!attendance.classId) {
+      attendance.error = "Choose a class to load its register.";
+      workspace.innerHTML = '<div class="panel"><div class="panel__body">' +
+        emptyState("users", "No class selected", attendance.error) + "</div></div>";
+      icons();
+      return;
+    }
+
+    attendance.loading = true;
+    attendance.error = null;
+    attendance.requestKey = key;
+    workspace.innerHTML = '<div class="view-loading"><span class="loading-dot" aria-hidden="true"></span> Loading register\u2026</div>';
+
+    try {
+      var payload = await API.get(
+        "/teacher/attendance?class_id=" + encodeURIComponent(attendance.classId) +
+        "&date=" + encodeURIComponent(attendance.date)
+      );
+      if (attendance.requestKey !== key) return;
+      attendance.data = payload && payload.data ? payload.data : null;
+      attendance.loadedKey = key;
+      if (state.role === "teacher" && state.section === "attendance") {
+        workspace.innerHTML = attendanceRegisterPanel(attendance.data);
+        hydrateCharts();
+        icons();
+      }
+    } catch (error) {
+      if (attendance.requestKey !== key) return;
+      if (API.isAuthError(error)) return handleAuthFailure();
+      attendance.error = API.message(error);
+      if (state.role === "teacher" && state.section === "attendance") {
+        workspace.innerHTML = '<div class="panel"><div class="panel__body">' +
+          emptyState("cloud-off", "The register could not be loaded", attendance.error) +
+          '<div class="empty-state__actions"><button class="btn btn--primary" type="button" data-attendance-retry><i data-lucide="refresh-cw"></i> Try again</button></div>' +
+          "</div></div>";
+        icons();
+      }
+    } finally {
+      if (attendance.requestKey === key) attendance.loading = false;
+    }
+  }
+
+  async function submitAttendance(form) {
+    var button = form.querySelector('button[type="submit"]');
+    var rows = Array.prototype.slice.call(form.querySelectorAll("[data-attendance-row]"));
+    var records = [];
+
+    setFormMessage(form, "");
+    rows.forEach(function (row) {
+      var status = row.querySelector("[data-attendance-status]");
+      var note = row.querySelector("[data-attendance-note]");
+      if (status && status.value) {
+        records.push({
+          student_id: row.getAttribute("data-student-id"),
+          status: status.value,
+          note: note && note.value.trim() ? note.value.trim() : null
+        });
+      }
+    });
+
+    if (!records.length) {
+      setFormMessage(form, "There are no students to mark in this class.");
+      return;
+    }
+
+    setButtonBusy(button, true, "Saving\u2026");
+    try {
+      await API.post("/teacher/attendance", {
+        class_id: form.getAttribute("data-class-id"),
+        term_id: form.getAttribute("data-term-id"),
+        date: form.getAttribute("data-date"),
+        records: records
+      });
+
+      var attendance = attendanceState();
+      if (attendance.date === todayISO()) {
+        TEACHER.pendingRegisters = TEACHER.pendingRegisters.filter(function (register) {
+          return register.classId !== attendance.classId;
+        });
+        TEACHER.stats.pending_registers = TEACHER.pendingRegisters.length;
+        setNavBadge("teacher", "attendance", TEACHER.pendingRegisters.length);
+        renderSidebar();
+      }
+
+      toast("Attendance register saved.");
+      await loadAttendanceWorkspace(true);
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      setFormMessage(form, API.message(error));
+      setButtonBusy(button, false);
+    }
+  }
+
+  function resultSheetWorkspace(role) {
+    var result = state.resultSheet;
+    var back = '<button class="btn btn--ghost" type="button" data-result-back><i data-lucide="arrow-left"></i> All result sheets</button>';
+
+    if (result && result.data) return resultSheetDetailView(result.data, role);
+    if (result && result.error) {
+      return pageHead({
+        eyebrow: role === "admin" ? "Administration" : "Results entry",
+        title: "Result sheet",
+        lead: "The requested sheet could not be opened.",
+        actions: back
+      }) +
+      '<section class="panel"><div class="panel__body">' +
+        emptyState("cloud-off", "Unable to load the result sheet", result.error) +
+        '<div class="empty-state__actions"><button class="btn btn--primary" type="button" data-result-retry><i data-lucide="refresh-cw"></i> Try again</button></div>' +
+      "</div></section>";
+    }
+
+    return pageHead({
+      eyebrow: role === "admin" ? "Administration" : "Results entry",
+      title: "Result sheet",
+      lead: "Loading the latest scores\u2026",
+      actions: back
+    }) +
+    '<div id="resultSheetWorkspace" class="view-loading"><span class="loading-dot" aria-hidden="true"></span> Loading result sheet\u2026</div>';
+  }
+
+  function teacherResultsView() {
+    if (state.resultSheet) return resultSheetWorkspace("teacher");
+
+    var sheets = TEACHER.resultSheets;
+    var stats = TEACHER.stats || {};
+    var rows = sheets.map(function (sheet) {
+      var status = sheet.status || "not_started";
+      var actionLabel = status === "not_started" ? "Start sheet" : "Open sheet";
+      return [
+        '<div class="cell-person"><strong>' + esc(sheet.class.name) + "</strong><span>" + esc(sheet.class.level || "") + "</span></div>",
+        esc(sheet.subject.name),
+        statusPill(statusLabel(status, sheet.status_label), statusTone(status)),
+        asNumber(sheet.entered) + " / " + asNumber(sheet.students),
+        sheet.submitted_at ? longDate(sheet.submitted_at) : '<span class="muted">\u2014</span>',
+        '<button class="btn btn--ghost btn--sm" type="button" data-result-open data-sheet-id="' + esc(sheet.sheet_id || "") +
+          '" data-class-id="' + esc(sheet.class.id) + '" data-subject-id="' + esc(sheet.subject.id) +
+          '" data-status="' + esc(status) + '">' + actionLabel + "</button>"
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Teaching",
+      title: "Results entry",
+      lead: "Enter continuous assessment and examination scores for your assigned subjects.",
+      actions: '<span class="term-chip"><i data-lucide="calendar-days"></i>' + esc(SCHOOL.label || SCHOOL.term) + "</span>" +
+        '<button class="btn btn--ghost" type="button" data-view="overview"><i data-lucide="layout-dashboard"></i> Overview</button>'
+    }) +
+    statGrid([
+      stat({ icon: "file-check-2", label: "Sheets outstanding", value: asNumber(stats.sheets_outstanding), meta: "Draft or not started", alert: asNumber(stats.sheets_outstanding) > 0 }),
+      stat({ icon: "check-circle-2", label: "Submitted", value: sheets.filter(function (sheet) { return sheet.status === "submitted"; }).length, meta: "Awaiting administration" }),
+      stat({ icon: "award", label: "Approved", value: sheets.filter(function (sheet) { return sheet.status === "approved" || sheet.status === "published"; }).length, meta: "Ready for families" }),
+      stat({ icon: "book-open", label: "Subjects", value: sheets.length, meta: "Assigned this term" })
+    ]) +
+    panel({
+      title: "My result sheets",
+      sub: (SCHOOL.label || SCHOOL.term || "This term") + " \u00B7 draft, submit and track approval",
+      body: rows.length
+        ? table(
+            [{ label: "Class" }, { label: "Subject" }, { label: "Status" }, { label: "Entered", align: "center" }, { label: "Submitted" }, { label: "Action", align: "right" }],
+            rows,
+            "Result sheets assigned to you"
+          )
+        : emptyState("file-check-2", "No result sheets", "You have no assigned subjects for this term.")
+    }) +
+    callout("info", "Scores use CA out of 40 and examination out of 60. A sheet can be edited while it is a draft; once submitted it is locked until the administration approves it or returns it for correction.");
+  }
+
+  function scoreInput(student, kind, max) {
+    var value = student[kind] === null || student[kind] === undefined ? "" : numberText(student[kind], 2);
+    return '<input class="table-input table-input--score" data-result-score="' + kind + '" type="number" min="0" max="' +
+      max + '" step="0.01" value="' + esc(value) + '" aria-label="' + kind.toUpperCase() + ' score for ' + esc(student.name) + '">';
+  }
+
+  function resultSheetDetailView(data, role) {
+    var sheet = data.sheet || {};
+    var students = Array.isArray(data.students) ? data.students : [];
+    var editable = role === "teacher" && sheet.status === "draft";
+    var status = sheet.status || "draft";
+
+    var rows = students.map(function (student) {
+      var total = student.ca_score !== null && student.ca_score !== undefined &&
+        student.exam_score !== null && student.exam_score !== undefined
+        ? numberText(asNumber(student.ca_score) + asNumber(student.exam_score), 2)
+        : "\u2014";
+
+      return {
+        attrs: editable ? ' data-result-row data-student-id="' + esc(student.id) + '"' : "",
+        cells: [
+          '<div class="cell-person"><strong>' + esc(student.name) + "</strong><span>" + esc(student.admission_no || "") + "</span></div>",
+          editable ? scoreInput(student, "ca_score", 40) : numberText(student.ca_score),
+          editable ? scoreInput(student, "exam_score", 60) : numberText(student.exam_score),
+          '<strong data-row-total>' + total + "</strong>",
+          esc(student.grade || "\u2014"),
+          esc(student.remark || "")
+        ]
+      };
+    });
+
+    var scoreTable = table(
+      [{ label: "Student" }, { label: "CA (40)", align: "right" }, { label: "Exam (60)", align: "right" }, { label: "Total", align: "right" }, { label: "Grade", align: "center" }, { label: "Remark" }],
+      rows,
+      "Scores for " + (sheet.class ? sheet.class.name : "") + " " + (sheet.subject ? sheet.subject.name : "")
+    );
+
+    var body = scoreTable;
+    if (editable) {
+      body = '<form data-result-form data-sheet-id="' + esc(sheet.id) + '">' +
+        scoreTable +
+        '<div class="form-actions">' +
+          '<button class="btn btn--primary" type="submit"><i data-lucide="save"></i> Save draft</button>' +
+          '<button class="btn btn--gold" type="button" data-result-action="submit"><i data-lucide="send"></i> Submit for approval</button>' +
+          '<p class="form-msg" role="status"></p>' +
+        "</div>" +
+      "</form>";
+    }
+
+    var reviewPanel = "";
+    if (role === "admin") {
+      if (status === "submitted") {
+        reviewPanel = panel({
+          title: "Review decision",
+          sub: "Approve the scores or return them to the teacher",
+          body: '<div class="field"><label for="reviewNote">Return note</label>' +
+            '<textarea id="reviewNote" data-review-note rows="3" maxlength="500" placeholder="Required only when returning the sheet for correction"></textarea></div>' +
+            '<div class="form-actions">' +
+              '<button class="btn btn--primary" type="button" data-result-action="approve"><i data-lucide="check"></i> Approve sheet</button>' +
+              '<button class="btn btn--ghost" type="button" data-result-action="return"><i data-lucide="undo-2"></i> Return for correction</button>' +
+              '<p class="form-msg" role="status"></p>' +
+            "</div>"
+        });
+      } else {
+        reviewPanel = callout(
+          status === "approved" || status === "published" ? "info" : "warn",
+          status === "approved" || status === "published"
+            ? "<strong>Approved.</strong> This sheet is ready for term publication."
+            : "<strong>Draft.</strong> The teacher is still preparing this sheet."
+        );
+      }
+    }
+
+    return pageHead({
+      eyebrow: role === "admin" ? "Administration" : "Results entry",
+      title: (sheet.class ? sheet.class.name : "Class") + " \u00B7 " + (sheet.subject ? sheet.subject.name : "Subject"),
+      lead: (sheet.term ? sheet.term.label : SCHOOL.label) + " \u00B7 " + asNumber(sheet.entered) + " of " + asNumber(sheet.students) + " students entered.",
+      actions: '<button class="btn btn--ghost" type="button" data-result-back><i data-lucide="arrow-left"></i> All result sheets</button>' +
+        statusPill(statusLabel(status, sheet.status_label), statusTone(status))
+    }) +
+    statGrid([
+      stat({ icon: "users", label: "Students", value: asNumber(sheet.students), meta: "Active in this class" }),
+      stat({ icon: "file-check-2", label: "Entered", value: asNumber(sheet.entered), meta: "Students with scores" }),
+      stat({ icon: "shield-check", label: "Status", value: statusLabel(status, sheet.status_label), meta: sheet.submitted_at ? "Submitted " + longDate(sheet.submitted_at) : "Not submitted" }),
+      stat({ icon: "user-check", label: "Teacher", value: sheet.teacher || ROLES[state.role].shortName, meta: role === "admin" ? "Subject teacher" : "You" })
+    ]) +
+    (sheet.review_note ? callout("warn", "<strong>Administration note:</strong> " + esc(sheet.review_note)) : "") +
+    panel({
+      title: "Score sheet",
+      sub: editable ? "Enter both scores for every student, then save or submit." : "Scores are read-only at this stage.",
+      action: statusPill(statusLabel(status, sheet.status_label), statusTone(status)),
+      body: body
+    }) +
+    reviewPanel;
+  }
+
+  async function loadResultSheetWorkspace() {
+    var result = state.resultSheet;
+    if (!result || result.loading || result.data) return;
+    if (result.error) return;
+    if (!result.id && !result.classId) return;
+
+    result.loading = true;
+    try {
+      var payload;
+      if (result.id) {
+        payload = await API.get("/teacher/result-sheets/" + encodeURIComponent(result.id));
+      } else {
+        payload = await API.post("/teacher/result-sheets", {
+          class_id: result.classId,
+          subject_id: result.subjectId,
+          term_id: DATA.dashboard && DATA.dashboard.term ? DATA.dashboard.term.id : null
+        });
+      }
+      result.data = payload && payload.data ? payload.data : null;
+      result.id = result.data && result.data.sheet ? result.data.sheet.id : result.id;
+      if (state.role === "teacher" && result.data && result.data.sheet) {
+        updateTeacherSheet(result.data.sheet);
+      }
+      result.loading = false;
+      if ((state.role === "teacher" || state.role === "admin") && state.section === "results") {
+        renderView();
+        icons();
+      }
+    } catch (error) {
+      result.loading = false;
+      if (API.isAuthError(error)) return handleAuthFailure();
+      result.error = API.message(error);
+      if ((state.role === "teacher" || state.role === "admin") && state.section === "results") {
+        renderView();
+        icons();
+      }
+    }
+  }
+
+  function openResultSheet(button) {
+    state.resultSheet = {
+      id: button.getAttribute("data-sheet-id") || null,
+      classId: button.getAttribute("data-class-id"),
+      subjectId: button.getAttribute("data-subject-id"),
+      status: button.getAttribute("data-status"),
+      data: null,
+      loading: false,
+      error: null
+    };
+    if (window.location.hash === "#results") {
+      renderView();
+      icons();
+    } else {
+      navigate("results");
+    }
+  }
+
+  function updateResultRowTotal(input) {
+    var row = input.closest("[data-result-row]");
+    if (!row) return;
+    var ca = row.querySelector('[data-result-score="ca_score"]');
+    var exam = row.querySelector('[data-result-score="exam_score"]');
+    var totalCell = row.querySelector("[data-row-total]");
+    if (!ca || !exam || !totalCell) return;
+    var caValue = ca.value.trim();
+    var examValue = exam.value.trim();
+    totalCell.textContent = caValue !== "" && examValue !== ""
+      ? numberText(Number(caValue) + Number(examValue), 2)
+      : "\u2014";
+  }
+
+  async function saveResultSheet(form) {
+    var result = state.resultSheet;
+    if (!result || !result.data) return;
+    var button = form.querySelector('button[type="submit"]');
+    var rows = Array.prototype.slice.call(form.querySelectorAll("[data-result-row]"));
+    var records = [];
+    var invalid = false;
+
+    setFormMessage(form, "");
+    rows.forEach(function (row) {
+      var ca = row.querySelector('[data-result-score="ca_score"]');
+      var exam = row.querySelector('[data-result-score="exam_score"]');
+      ca.classList.remove("is-invalid");
+      exam.classList.remove("is-invalid");
+      if (!ca || !exam) return;
+
+      var caRaw = ca.value.trim();
+      var examRaw = exam.value.trim();
+      if (caRaw === "" && examRaw === "") return;
+      var caValue = Number(caRaw);
+      var examValue = Number(examRaw);
+
+      if (caRaw === "" || !Number.isFinite(caValue) || caValue < 0 || caValue > 40) {
+        ca.classList.add("is-invalid");
+        invalid = true;
+      }
+      if (examRaw === "" || !Number.isFinite(examValue) || examValue < 0 || examValue > 60) {
+        exam.classList.add("is-invalid");
+        invalid = true;
+      }
+      if (caRaw !== "" && examRaw !== "" && Number.isFinite(caValue) && Number.isFinite(examValue) && caValue >= 0 && caValue <= 40 && examValue >= 0 && examValue <= 60) {
+        records.push({
+          student_id: row.getAttribute("data-student-id"),
+          ca_score: caValue,
+          exam_score: examValue
+        });
+      }
+    });
+
+    if (invalid) {
+      setFormMessage(form, "Enter a complete CA score (0\u201340) and exam score (0\u201360) for each student.");
+      return;
+    }
+    if (!records.length) {
+      setFormMessage(form, "Enter at least one student's scores before saving.");
+      return;
+    }
+
+    setButtonBusy(button, true, "Saving\u2026");
+    try {
+      var payload = await API.patch("/teacher/result-sheets/" + encodeURIComponent(result.data.sheet.id), { results: records });
+      result.data = payload && payload.data ? payload.data : result.data;
+      updateTeacherSheet(result.data.sheet);
+      renderView();
+      icons();
+      toast("Result draft saved.");
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      setFormMessage(form, API.message(error));
+      setButtonBusy(button, false);
+    }
+  }
+
+  function updateTeacherSheet(sheet) {
+    var match = TEACHER.resultSheets.filter(function (row) {
+      return row.sheet_id === sheet.id || (row.class.id === sheet.class.id && row.subject.id === sheet.subject.id);
+    })[0];
+    if (!match) return;
+    match.sheet_id = sheet.id;
+    match.status = sheet.status;
+    match.status_label = sheet.status_label;
+    match.entered = sheet.entered;
+    match.students = sheet.students;
+    match.submitted_at = sheet.submitted_at;
+    TEACHER.stats.sheets_outstanding = TEACHER.resultSheets.filter(function (row) {
+      return row.status === "draft" || row.status === "not_started";
+    }).length;
+    setNavBadge("teacher", "results", TEACHER.stats.sheets_outstanding);
+  }
+
+  async function submitCurrentResultSheet(button) {
+    var result = state.resultSheet;
+    if (!result || !result.data) return;
+    var sheet = result.data.sheet;
+    if (!window.confirm("Submit " + sheet.class.name + " " + sheet.subject.name + " to the administration? You will not be able to edit it while it is under review.")) return;
+
+    setButtonBusy(button, true, "Submitting\u2026");
+    try {
+      var payload = await API.post("/teacher/result-sheets/" + encodeURIComponent(sheet.id) + "/submit", {});
+      result.data = payload && payload.data ? payload.data : result.data;
+      updateTeacherSheet(result.data.sheet);
+      renderView();
+      icons();
+      toast("Result sheet submitted for approval.");
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+      setButtonBusy(button, false);
+    }
+  }
+
+  /* ============================================================
+     21. ADMIN VIEWS
+     ============================================================ */
+  function adminStudentsView() {
+    var rows = ADMIN.students.map(function (student) {
+      var classroom = student.class || {};
+      var account = student.account || {};
+      return [
+        '<div class="cell-person"><strong>' + esc(student.name) + "</strong><span>" + esc(student.admission_no) + "</span></div>",
+        esc(classroom.name || "\u2014"),
+        esc(student.level || classroom.level_label || "\u2014"),
+        esc(account.email || "No portal account"),
+        statusPill(statusLabel(student.status), student.status === "active" ? "ok" : "info")
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Students",
+      lead: "The live student register for " + esc(SCHOOL.session || "the current session") + ".",
+      actions: statusPill(ADMIN.students.length + " records", "info")
+    }) +
+    statGrid([
+      stat({ icon: "users", label: "Students", value: ADMIN.students.length, meta: "All records" }),
+      stat({ icon: "graduation-cap", label: "Nursery / Primary", value: ADMIN.students.filter(function (s) { return s.level === "Nursery" || s.level === "Primary"; }).length, meta: "Foundation years" }),
+      stat({ icon: "school", label: "Secondary", value: ADMIN.students.filter(function (s) { return s.level === "Junior Secondary" || s.level === "Senior Secondary"; }).length, meta: "Junior and senior" }),
+      stat({ icon: "user-check", label: "Portal accounts", value: ADMIN.students.filter(function (s) { return s.account && s.account.email; }).length, meta: "Active sign-in access" })
+    ]) +
+    panel({
+      title: "Student register",
+      sub: "Name, class, level and portal account",
+      body: rows.length
+        ? table([{ label: "Student" }, { label: "Class" }, { label: "Level" }, { label: "Portal email" }, { label: "Status" }], rows, "Student register")
+        : emptyState("users", "No student records", "Student records will appear here once they are enrolled.")
+    });
+  }
+
+  function adminStaffView() {
+    var rows = ADMIN.teachers.map(function (teacher) {
+      return ['<div class="cell-person"><strong>' + esc(teacher.name) + "</strong><span>Teaching staff</span></div>", esc(teacher.email)];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Staff",
+      lead: "Teaching staff with active portal accounts.",
+      actions: statusPill(ADMIN.teachers.length + " teachers", "info")
+    }) +
+    statGrid([
+      stat({ icon: "id-card", label: "Total staff", value: asNumber(ADMIN.stats.staff), meta: "Teaching and non-teaching" }),
+      stat({ icon: "presentation", label: "Teaching staff", value: asNumber(ADMIN.stats.teachers), meta: "Active teachers" }),
+      stat({ icon: "users", label: "Students", value: asNumber(ADMIN.stats.students), meta: "Across all levels" }),
+      stat({ icon: "calendar-check", label: "Attendance today", value: ADMIN.stats.attendance + "%", meta: longDate(ADMIN.stats.attendanceDate) })
+    ]) +
+    panel({
+      title: "Teaching staff",
+      sub: "Names and staff email addresses",
+      body: rows.length
+        ? table([{ label: "Teacher" }, { label: "Email" }], rows, "Teaching staff")
+        : emptyState("id-card", "No staff records", "Teaching staff will appear here once accounts are created.")
+    });
+  }
+
+  function adminAcademicsView() {
+    var classRows = DATA.classes.map(function (classroom) {
+      return [
+        "<strong>" + esc(classroom.name) + "</strong>",
+        esc(classroom.level_label || classroom.level || ""),
+        esc(classroom.form_teacher || "Not assigned"),
+        asNumber(classroom.students)
+      ];
+    });
+    var termRows = DATA.terms.map(function (term) {
+      return [
+        "<strong>" + esc(term.label || (term.name + ", " + (term.session ? term.session.name : ""))) + "</strong>",
+        longDate(term.starts_on) + " \u2013 " + longDate(term.ends_on),
+        term.is_current ? statusPill("Current", "gold") : '<span class="muted">Closed</span>',
+        term.results_published_at ? statusPill("Results published", "ok") : statusPill("Not published", "info")
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Academics",
+      lead: "Classes, form teachers and academic terms.",
+      actions: statusPill(DATA.classes.length + " classes", "info")
+    }) +
+    '<div class="dash-grid dash-grid--2">' +
+      panel({
+        title: "Classes",
+        sub: "Form teacher and active enrolment",
+        body: classRows.length
+          ? table([{ label: "Class" }, { label: "Level" }, { label: "Form teacher" }, { label: "Students", align: "right" }], classRows, "Classes")
+          : emptyState("school", "No classes", "Class records will appear here.")
+      }) +
+      panel({
+        title: "Academic terms",
+        sub: "Sessions and publication status",
+        body: termRows.length
+          ? table([{ label: "Term" }, { label: "Dates" }, { label: "Status" }, { label: "Results" }], termRows, "Academic terms")
+          : emptyState("calendar-days", "No terms", "Academic terms will appear here.")
+      }) +
+    "</div>";
+  }
+
+  function admissionTone(status) {
+    return {
+      new: "gold",
+      assessment: "warn",
+      offer: "info",
+      enrolled: "ok",
+      declined: "danger"
+    }[status] || "info";
+  }
+
+  function adminAdmissionsView() {
+    var admissions = ADMIN.admissions;
+    var counts = {};
+    admissions.forEach(function (row) { counts[row.status] = (counts[row.status] || 0) + 1; });
+    var rows = admissions.map(function (row) {
+      return [
+        '<div class="cell-person"><strong>' + esc(row.applicant) + "</strong><span>" + esc(row.email) + "</span></div>",
+        esc(row.guardian || "\u2014"),
+        esc(row.level_label || row.level || "\u2014"),
+        statusPill(row.status_label || statusLabel(row.status), admissionTone(row.status)),
+        longDate(row.created_at),
+        esc(row.notes || "\u2014")
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Admissions",
+      lead: "Applications and the current admissions pipeline.",
+      actions: statusPill(admissions.length + " applications", "info")
+    }) +
+    statGrid([
+      stat({ icon: "user-plus", label: "New applications", value: counts.new || 0, meta: "Awaiting first contact", alert: (counts.new || 0) > 0 }),
+      stat({ icon: "calendar-check", label: "Assessment", value: counts.assessment || 0, meta: "Booked for assessment" }),
+      stat({ icon: "file-check-2", label: "Offers issued", value: counts.offer || 0, meta: "Awaiting family response" }),
+      stat({ icon: "check-circle-2", label: "Enrolled", value: counts.enrolled || 0, meta: "Joined the school" })
+    ]) +
+    panel({
+      title: "Applications",
+      sub: "Newest applications first",
+      body: rows.length
+        ? table(
+            [{ label: "Applicant" }, { label: "Guardian" }, { label: "Level" }, { label: "Status" }, { label: "Received" }, { label: "Notes" }],
+            rows,
+            "Admissions applications"
+          )
+        : emptyState("user-plus", "No applications", "New admission enquiries will appear here.")
+    });
+  }
+
+  function financeTone(status) {
+    return {
+      paid: "ok",
+      partial: "warn",
+      unpaid: "danger",
+      overdue: "danger"
+    }[status] || "info";
+  }
+
+  function adminFinanceView() {
+    var finance = ADMIN.finance || {};
+    var summary = finance.summary || {};
+    var invoices = Array.isArray(finance.invoices) ? finance.invoices : [];
+    var payments = Array.isArray(finance.recent_payments) ? finance.recent_payments : [];
+    var visibleInvoices = invoices.slice(0, 30);
+
+    var invoiceRows = visibleInvoices.map(function (invoice) {
+      return [
+        '<div class="cell-person"><strong>' + esc(invoice.student ? invoice.student.name : "\u2014") + "</strong><span>" + esc(invoice.ref) + "</span></div>",
+        esc(invoice.item || "\u2014"),
+        money(invoice.amount),
+        money(invoice.paid),
+        money(invoice.balance),
+        statusPill(invoice.status_label || statusLabel(invoice.status), financeTone(invoice.status)),
+        longDate(invoice.due_on)
+      ];
+    });
+
+    var paymentRows = payments.map(function (payment) {
+      return [
+        '<div class="cell-person"><strong>' + esc(payment.student ? payment.student.name : "\u2014") + "</strong><span>" + esc(payment.ref) + "</span></div>",
+        money(payment.amount),
+        esc(payment.method || "\u2014"),
+        longDate(payment.paid_on)
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Fees & finance",
+      lead: "Term billing, collections and recent receipts.",
+      actions: '<span class="term-chip"><i data-lucide="calendar-days"></i>' + esc(SCHOOL.label || SCHOOL.term) + "</span>"
+    }) +
+    statGrid([
+      stat({ icon: "wallet", label: "Billed", value: compactMoney(summary.billed), meta: "Invoices this term" }),
+      stat({ icon: "trending-up", label: "Collected", value: compactMoney(summary.collected), meta: numberText(summary.collection_rate, 0) + "% collection rate" }),
+      stat({ icon: "alert-circle", label: "Outstanding", value: compactMoney(summary.outstanding), meta: "Still to be settled", alert: asNumber(summary.outstanding) > 0 }),
+      stat({ icon: "receipt", label: "Recent payments", value: payments.length, meta: "Latest receipted payments" })
+    ]) +
+    panel({
+      title: "Fee invoices",
+      sub: invoices.length > visibleInvoices.length
+        ? "Showing the latest " + visibleInvoices.length + " of " + invoices.length
+        : invoices.length + " invoices",
+      body: invoiceRows.length
+        ? table(
+            [{ label: "Student" }, { label: "Item" }, { label: "Amount", align: "right" }, { label: "Paid", align: "right" }, { label: "Balance", align: "right" }, { label: "Status" }, { label: "Due" }],
+            invoiceRows,
+            "Fee invoices"
+          )
+        : emptyState("wallet", "No invoices", "Term invoices will appear here once raised.")
+    }) +
+    panel({
+      title: "Recent payments",
+      sub: "Latest receipted transactions",
+      body: paymentRows.length
+        ? table([{ label: "Student" }, { label: "Amount", align: "right" }, { label: "Method" }, { label: "Date" }], paymentRows, "Recent payments")
+        : emptyState("receipt", "No payments", "Receipted payments will appear here.")
+    });
+  }
+
+  function adminResultsView() {
+    if (state.resultSheet) return resultSheetWorkspace("admin");
+
+    var termInfo = DATA.adminResultSheets && DATA.adminResultSheets.term ? DATA.adminResultSheets.term : (DATA.dashboard ? DATA.dashboard.term : {});
+    var sheets = DATA.adminResultSheets && Array.isArray(DATA.adminResultSheets.sheets) ? DATA.adminResultSheets.sheets : [];
+    var termPublished = !!(termInfo.results_published_at || (DATA.dashboard && DATA.dashboard.term && DATA.dashboard.term.results_published_at));
+    var submitted = sheets.filter(function (sheet) { return sheet.status === "submitted"; }).length;
+    var approved = sheets.filter(function (sheet) { return sheet.status === "approved"; }).length;
+    var published = sheets.filter(function (sheet) { return sheet.status === "published"; }).length;
+
+    var rows = sheets.map(function (sheet) {
+      return [
+        '<div class="cell-person"><strong>' + esc(sheet.class.name) + "</strong><span>" + esc(sheet.subject.name) + "</span></div>",
+        esc(sheet.teacher || "\u2014"),
+        asNumber(sheet.entered) + " / " + asNumber(sheet.students),
+        statusPill(statusLabel(sheet.status, sheet.status_label), statusTone(sheet.status)),
+        sheet.submitted_at ? longDate(sheet.submitted_at) : '<span class="muted">\u2014</span>',
+        '<button class="btn btn--ghost btn--sm" type="button" data-result-open data-sheet-id="' + esc(sheet.id) +
+          '" data-class-id="' + esc(sheet.class.id) + '" data-subject-id="' + esc(sheet.subject.id) +
+          '" data-status="' + esc(sheet.status) + '">Review</button>'
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Results",
+      lead: "Review submitted result sheets and publish the term when every sheet is approved.",
+      actions: '<span class="term-chip"><i data-lucide="calendar-days"></i>' + esc(termInfo.label || SCHOOL.label) + "</span>" +
+        (termPublished
+          ? '<button class="btn btn--ghost" type="button" disabled title="Results for this term have already been published"><i data-lucide="check-circle-2"></i> Results published</button>'
+          : '<button class="btn btn--gold" type="button" data-publish-term><i data-lucide="send"></i> Publish results</button>')
+    }) +
+    statGrid([
+      stat({ icon: "file-check-2", label: "Submitted", value: submitted, meta: "Awaiting your review", alert: submitted > 0 }),
+      stat({ icon: "check-circle-2", label: "Approved", value: approved, meta: "Ready for publication" }),
+      stat({ icon: "megaphone", label: "Published", value: published, meta: "Visible to families" }),
+      stat({ icon: "files", label: "All sheets", value: sheets.length, meta: "For this term" })
+    ]) +
+    panel({
+      title: "Result sheets",
+      sub: "Submitted and approved sheets for " + (termInfo.label || SCHOOL.label),
+      body: rows.length
+        ? table(
+            [{ label: "Class / subject" }, { label: "Teacher" }, { label: "Entered", align: "center" }, { label: "Status" }, { label: "Submitted" }, { label: "Action", align: "right" }],
+            rows,
+            "Result sheets for the current term"
+          )
+        : emptyState("file-check-2", "No result sheets", "Submitted sheets will appear here for review.")
+    }) +
+    callout("info", "Results become visible to students and parents only after every submitted sheet is approved or returned and the term is published. Returning a sheet unlocks it for the teacher to correct.");
+  }
+
+  async function approveCurrentResultSheet(button) {
+    var result = state.resultSheet;
+    if (!result || !result.data) return;
+    var sheet = result.data.sheet;
+    if (!window.confirm("Approve " + sheet.class.name + " " + sheet.subject.name + "? Approve only after checking the scores.")) return;
+
+    var noteField = document.querySelector("[data-review-note]");
+    var note = noteField && noteField.value.trim() ? noteField.value.trim() : null;
+    setButtonBusy(button, true, "Approving\u2026");
+    try {
+      var payload = await API.post("/admin/result-sheets/" + encodeURIComponent(sheet.id) + "/approve", note ? { note: note } : {});
+      result.data = payload && payload.data ? payload.data : result.data;
+      updateAdminSheet(result.data.sheet);
+      renderView();
+      icons();
+      toast("Result sheet approved.");
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+      setButtonBusy(button, false);
+    }
+  }
+
+  async function returnCurrentResultSheet(button) {
+    var result = state.resultSheet;
+    if (!result || !result.data) return;
+    var sheet = result.data.sheet;
+    var noteField = document.querySelector("[data-review-note]");
+    var note = noteField ? noteField.value.trim() : "";
+    if (note.length < 3) {
+      toast("Add a short note explaining what needs correction.");
+      if (noteField) noteField.focus();
+      return;
+    }
+
+    setButtonBusy(button, true, "Returning\u2026");
+    try {
+      var payload = await API.post("/admin/result-sheets/" + encodeURIComponent(sheet.id) + "/return", { note: note });
+      result.data = payload && payload.data ? payload.data : result.data;
+      updateAdminSheet(result.data.sheet);
+      renderView();
+      icons();
+      toast("Result sheet returned to the teacher.");
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+      setButtonBusy(button, false);
+    }
+  }
+
+  function updateAdminSheet(sheet) {
+    var sheets = DATA.adminResultSheets && Array.isArray(DATA.adminResultSheets.sheets) ? DATA.adminResultSheets.sheets : [];
+    var match = sheets.filter(function (row) { return row.id === sheet.id; })[0];
+    if (match) {
+      match.status = sheet.status;
+      match.status_label = sheet.status_label;
+      match.entered = sheet.entered;
+      match.students = sheet.students;
+      match.submitted_at = sheet.submitted_at;
+      match.approved_at = sheet.approved_at;
+    }
+    ADMIN.stats.pendingApprovals = sheets.filter(function (row) { return row.status === "submitted"; }).length;
+    ADMIN.approvals = (ADMIN.approvals || []).filter(function (row) { return row.id !== sheet.id; });
+    setNavBadge("admin", "results", ADMIN.stats.pendingApprovals);
+    renderSidebar();
+  }
+
+  async function publishCurrentTerm(button) {
+    var term = DATA.dashboard && DATA.dashboard.term ? DATA.dashboard.term : null;
+    if (!term || !term.id) return;
+    var termInfo = DATA.adminResultSheets && DATA.adminResultSheets.term ? DATA.adminResultSheets.term : null;
+    if (term.results_published_at || (termInfo && termInfo.results_published_at)) {
+      toast("Results for this term are already published.");
+      return;
+    }
+    if (!window.confirm("Publish " + (term.label || term.name) + " results to students and parents? This notifies families and should only be done after every sheet is approved.")) return;
+
+    setButtonBusy(button, true, "Publishing\u2026");
+    try {
+      var payload = await API.post("/admin/terms/" + encodeURIComponent(term.id) + "/publish", {});
+      var published = payload && payload.data ? payload.data.published_sheets : 0;
+      var sheets = DATA.adminResultSheets && Array.isArray(DATA.adminResultSheets.sheets) ? DATA.adminResultSheets.sheets : [];
+      sheets.forEach(function (sheet) {
+        if (sheet.status === "approved") {
+          sheet.status = "published";
+          sheet.status_label = "Published";
+        }
+      });
+      term.results_published_at = new Date().toISOString();
+      if (termInfo) termInfo.results_published_at = term.results_published_at;
+      ADMIN.stats.pendingApprovals = 0;
+      ADMIN.approvals = [];
+      setNavBadge("admin", "results", 0);
+      renderSidebar();
+      renderView();
+      icons();
+      toast(published + " result sheet" + (published === 1 ? "" : "s") + " published.");
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+      setButtonBusy(button, false);
+    }
   }
 
 })();

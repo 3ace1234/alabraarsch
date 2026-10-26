@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#06352A">
-  <meta name="description" content="Al-Falaah School portal dashboard — an interactive design preview for students, parents, teachers and administrators.">
+  <meta name="description" content="Secure Al-Falaah School portal dashboard for students, parents, teachers and administrators.">
   <title>Portal Dashboard — Al-Falaah Nursery, Primary &amp; Secondary School</title>
   <link rel="icon" type="image/jpeg" href="assets/img/myfav.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=12">
-  <link rel="stylesheet" href="css/dashboard.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="stylesheet" href="css/dashboard.css?v=5">
 </head>
 <body class="app-body">
 
@@ -43,7 +43,7 @@
       <nav class="sidebar__nav" id="portalNav" aria-label="Portal sections"></nav>
 
       <div class="sidebar__foot">
-        <p class="preview-note"><i data-lucide="info"></i> Design preview · sample data only</p>
+        <p class="sidebar-note"><i data-lucide="shield-check"></i> Secure session · school records</p>
         <div data-sidebar-user></div>
         <a class="sidebar__back" href="index.html"><i data-lucide="arrow-left"></i> Back to website</a>
       </div>
@@ -58,26 +58,12 @@
           </button>
           <div class="topbar__context">
             <span class="topbar__school">Al-Falaah School</span>
-            <span class="term-chip"><i data-lucide="calendar-days"></i> First Term · 2026/2027</span>
+            <span class="term-chip" data-term-label><i data-lucide="calendar-days"></i> Loading term…</span>
           </div>
         </div>
 
         <div class="topbar__right">
-          <span class="prototype-pill" title="Interactive design preview using sample school data"><span class="prototype-pill__dot" aria-hidden="true"></span> Sample data</span>
-
-          <label class="role-switch">
-            <span class="role-switch__label">Viewing as</span>
-            <select id="roleSelect" aria-label="Preview the dashboard as another role">
-              <option value="student">Student</option>
-              <option value="parent">Parent</option>
-              <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
-            </select>
-          </label>
-
-          <button class="icon-btn topbar__search" type="button" data-demo="Global search across students, results and announcements arrives with the backend build." aria-label="Search the portal">
-            <i data-lucide="search"></i>
-          </button>
+          <span class="session-pill" title="Your account is signed in with a secure server session"><span class="session-pill__dot" aria-hidden="true"></span> Secure session</span>
 
           <div class="popover-wrap">
             <button class="icon-btn" type="button" data-notif-toggle aria-expanded="false" aria-haspopup="true" aria-controls="notifPanel" aria-label="Notifications">
@@ -89,8 +75,8 @@
 
           <div class="popover-wrap">
             <button class="profile-btn" type="button" data-profile-toggle aria-expanded="false" aria-haspopup="true" aria-controls="profilePanel">
-              <span class="avatar avatar--top" data-top-avatar>AA</span>
-              <span class="profile-btn__name" data-top-name>Aisha</span>
+              <span class="avatar avatar--top" data-top-avatar>—</span>
+              <span class="profile-btn__name" data-top-name>Loading…</span>
               <i data-lucide="chevron-down" class="profile-btn__caret"></i>
             </button>
             <div class="popover popover--profile" id="profilePanel" data-profile-panel hidden></div>
@@ -114,11 +100,12 @@
 
   <noscript>
     <div class="noscript-note">
-      <strong>JavaScript is required.</strong> This portal dashboard is an interactive design preview and needs JavaScript enabled.
+      <strong>JavaScript is required.</strong> The Al-Falaah portal needs JavaScript enabled to load your secure school records.
     </div>
   </noscript>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/dashboard.js?v=2"></script>
+  <script src="js/api.js?v=1"></script>
+  <script src="js/dashboard.js?v=5"></script>
 </body>
 </html>

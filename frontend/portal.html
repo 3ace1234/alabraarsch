@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Log in to the Al-Falaah Portal for parents, teachers and administrators — results, attendance, timetables, announcements and more.">
+  <meta name="description" content="Sign in to the secure Al-Falaah Portal for students, parents, teachers and administrators — results, attendance, timetables, announcements and more.">
   <title>Portal Login — Al-Falaah Nursery, Primary & Secondary School</title>
   <link rel="icon" type="image/jpeg" href="assets/img/myfav.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
 
@@ -62,7 +62,7 @@
         <div class="section-head reveal" style="margin-bottom:16px;max-width:640px;">
           <span class="eyebrow">Al-Falaah Portal</span>
           <h1 class="title">One door for parents, teachers &amp; the administration</h1>
-          <p class="lead">A communication platform planned to bring results, attendance, timetables, announcements and school management together. The login below is the frontend interface — accounts will be enabled with the backend.</p>
+          <p class="lead">A secure communication platform bringing results, attendance, timetables, announcements and school management together. Sign in with the school-issued email address and password for your account.</p>
         </div>
       </div>
     </section>
@@ -109,12 +109,12 @@
             <div class="login-card">
               <div class="login-card__head">
                 <h2>Sign in to the Portal</h2>
-                <p>Choose your role to use the correct account.</p>
+                <p>Choose the account group that matches your school email.</p>
               </div>
 
               <div data-tabs=".login-tab" data-panels=".login-panel">
-                <div class="login-tabs" role="tablist" aria-label="Choose a role">
-                  <button class="login-tab is-active" data-target="panelParent" role="tab" aria-selected="true"><i data-lucide="users"></i> Parent</button>
+                <div class="login-tabs" role="tablist" aria-label="Choose an account group">
+                  <button class="login-tab is-active" data-target="panelParent" role="tab" aria-selected="true"><i data-lucide="users"></i> Student / Parent</button>
                   <button class="login-tab" data-target="panelTeacher" role="tab" aria-selected="false"><i data-lucide="presentation"></i> Teacher</button>
                   <button class="login-tab" data-target="panelAdmin" role="tab" aria-selected="false"><i data-lucide="shield-check"></i> Admin</button>
                 </div>
@@ -122,81 +122,75 @@
                 <div class="login-card__body">
                   <div id="panelParent" class="login-panel is-active">
                     <div class="demo-notice">
-                      <i data-lucide="info"></i>
-                      <span>Frontend demo only. Real login credentials and secured accounts arrive with the backend build.</span>
+                      <i data-lucide="shield-check"></i>
+                      <span>Use the email address issued with your child's admission record. Both students and parents sign in here.</span>
                     </div>
-                    <form data-form novalidate>
+                    <form data-login-form data-role="student" novalidate>
                       <div class="form-grid" style="grid-template-columns:1fr;">
                         <div class="field">
-                          <label for="pUsername">Email or Parent ID</label>
-                          <input id="pUsername" type="text" placeholder="e.g. parent@example.com" required>
+                          <label for="pUsername">Email address</label>
+                          <input id="pUsername" name="email" type="email" autocomplete="username" placeholder="e.g. parent@example.com" required>
                         </div>
                         <div class="field">
                           <label for="pPassword">Password</label>
-                          <input id="pPassword" type="password" placeholder="Enter your password" required>
+                          <input id="pPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
                         </div>
                       </div>
                       <div class="flex flex--between flex--wrap flex--center mt-2">
-                        <label class="flex flex--center gap-2" style="font-size:.9rem;color:var(--color-text-muted);">
-                          <input type="checkbox" style="width:16px;height:16px;"> Remember me
-                        </label>
-                        <a href="#" style="font-size:.9rem;">Forgot password?</a>
+                        <span class="small" style="color:var(--color-text-muted);">Sessions expire automatically when idle.</span>
+                        <a href="contact.html" style="font-size:.9rem;">Login help</a>
                       </div>
-                      <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In as Parent</button>
+                      <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In</button>
                       <p class="form-msg" role="status"></p>
                     </form>
                   </div>
 
                   <div id="panelTeacher" class="login-panel">
                     <div class="demo-notice">
-                      <i data-lucide="info"></i>
-                      <span>Frontend demo only. Teacher accounts are issued by the administration.</span>
+                      <i data-lucide="shield-check"></i>
+                      <span>Teacher accounts are created by the school administration. Use your staff email address to sign in.</span>
                     </div>
-                    <form data-form novalidate>
+                    <form data-login-form data-role="teacher" novalidate>
                       <div class="form-grid" style="grid-template-columns:1fr;">
                         <div class="field">
-                          <label for="tUsername">Staff ID or Email</label>
-                          <input id="tUsername" type="text" placeholder="e.g. teacher@alfalaah.edu.ng" required>
+                          <label for="tUsername">Staff email address</label>
+                          <input id="tUsername" name="email" type="email" autocomplete="username" placeholder="e.g. teacher@alfalaah.edu.ng" required>
                         </div>
                         <div class="field">
                           <label for="tPassword">Password</label>
-                          <input id="tPassword" type="password" placeholder="Enter your password" required>
+                          <input id="tPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
                         </div>
                       </div>
                       <div class="flex flex--between flex--wrap flex--center mt-2">
-                        <label class="flex flex--center gap-2" style="font-size:.9rem;color:var(--color-text-muted);">
-                          <input type="checkbox" style="width:16px;height:16px;"> Remember me
-                        </label>
-                        <a href="#" style="font-size:.9rem;">Forgot password?</a>
+                        <span class="small" style="color:var(--color-text-muted);">Sessions expire automatically when idle.</span>
+                        <a href="contact.html" style="font-size:.9rem;">Login help</a>
                       </div>
-                      <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In as Teacher</button>
+                      <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In</button>
                       <p class="form-msg" role="status"></p>
                     </form>
                   </div>
 
                   <div id="panelAdmin" class="login-panel">
                     <div class="demo-notice">
-                      <i data-lucide="info"></i>
-                      <span>Frontend demo only. Administrators are provisioned by the system owner.</span>
+                      <i data-lucide="shield-check"></i>
+                      <span>Administrator accounts are provisioned by the system owner. All sign-in attempts are recorded.</span>
                     </div>
-                    <form data-form novalidate>
+                    <form data-login-form data-role="admin" novalidate>
                       <div class="form-grid" style="grid-template-columns:1fr;">
                         <div class="field">
-                          <label for="aUsername">Admin Username</label>
-                          <input id="aUsername" type="text" placeholder="e.g. admin" required>
+                          <label for="aUsername">Administrator email</label>
+                          <input id="aUsername" name="email" type="email" autocomplete="username" placeholder="e.g. admin@alfalaah.edu.ng" required>
                         </div>
                         <div class="field">
                           <label for="aPassword">Password</label>
-                          <input id="aPassword" type="password" placeholder="Enter your password" required>
+                          <input id="aPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
                         </div>
                       </div>
                       <div class="flex flex--between flex--wrap flex--center mt-2">
-                        <label class="flex flex--center gap-2" style="font-size:.9rem;color:var(--color-text-muted);">
-                          <input type="checkbox" style="width:16px;height:16px;"> Remember me
-                        </label>
-                        <a href="#" style="font-size:.9rem;">Forgot password?</a>
+                        <span class="small" style="color:var(--color-text-muted);">Sessions expire automatically when idle.</span>
+                        <a href="contact.html" style="font-size:.9rem;">Login help</a>
                       </div>
-                      <button class="btn btn--gold mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In as Admin</button>
+                      <button class="btn btn--gold mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In</button>
                       <p class="form-msg" role="status"></p>
                     </form>
                   </div>
@@ -204,8 +198,8 @@
               </div>
 
               <div class="login-card__preview">
-                <span><i data-lucide="layout-dashboard"></i> Design preview</span>
-                <a href="dashboard.html">Open the portal dashboard <i data-lucide="arrow-right"></i></a>
+                <span><i data-lucide="lock"></i> Secure session</span>
+                <a href="contact.html">Need access? Contact the school <i data-lucide="arrow-right"></i></a>
               </div>
             </div>
           </div>
@@ -217,16 +211,16 @@
     <section class="section section--wash">
       <div class="container">
         <div class="section-head section-head--center reveal">
-          <span class="eyebrow">Roadmap &mdash; With The Backend</span>
-          <h2 class="title">What the portal will do for you</h2>
-          <p class="lead">The frontend you see now is the design. The next build connects it to real, secure accounts and data.</p>
+          <span class="eyebrow">Inside the portal</span>
+          <h2 class="title">What the portal does for you</h2>
+          <p class="lead">Your account determines what you can see and do. Records are served directly from the school's secure database.</p>
         </div>
         <div class="grid grid--3">
           <article class="card reveal"><span class="card__icon"><i data-lucide="clipboard-list"></i></span><h3>Results &amp; Report Cards</h3><p>Parents check their child's term results once published; teachers submit and the administration approves.</p></article>
           <article class="card reveal" data-delay="80"><span class="card__icon"><i data-lucide="calendar-check"></i></span><h3>Attendance &amp; Timetables</h3><p>Live attendance records and class timetables available to parents, students and teachers.</p></article>
           <article class="card reveal" data-delay="160"><span class="card__icon"><i data-lucide="megaphone"></i></span><h3>Announcements &amp; Events</h3><p>The school publishes notices, events and important information to the right audience instantly.</p></article>
           <article class="card reveal"><span class="card__icon"><i data-lucide="folder-cog"></i></span><h3>Admission Management</h3><p>Applications, assessments and enrolment tracked digitally from the office dashboard.</p></article>
-          <article class="card reveal" data-delay="80"><span class="card__icon"><i data-lucide="messages-square"></i></span><h3>Reviews &amp; Complaints</h3><p>Parent reviews published with permission, and complaints handled confidentially end-to-end.</p></article>
+          <article class="card reveal" data-delay="80"><span class="card__icon"><i data-lucide="messages-square"></i></span><h3>Approval Workflow</h3><p>Teachers submit result sheets, the administration reviews them, and only approved results are published to families.</p></article>
           <article class="card reveal" data-delay="160"><span class="card__icon"><i data-lucide="lock"></i></span><h3>Secure &amp; Scaled</h3><p>Passwords, roles and permissions managed securely as the school grows.</p></article>
         </div>
       </div>
@@ -307,6 +301,8 @@
   <button class="to-top" id="toTop" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/main.js?v=3"></script>
+  <script src="js/api.js?v=1"></script>
+  <script src="js/main.js?v=4"></script>
+  <script src="js/portal.js?v=1"></script>
 </body>
 </html>
