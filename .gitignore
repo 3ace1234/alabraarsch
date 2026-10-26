@@ -1,0 +1,23 @@
+
+# ---------------------------------------------------------------------------
+# Secrets — never commit real credentials
+# ---------------------------------------------------------------------------
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Runtime files
+backend/storage/logs/*.log
+backend/storage/logs/*.json
+backend/storage/sessions/*
+!backend/storage/logs/.gitkeep
+!backend/storage/sessions/.gitkeep
+
+# Package managers / generated output
+backend/vendor/
+node_modules/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.swp

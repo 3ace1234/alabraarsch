@@ -1,0 +1,27 @@
+# The API front controller lives in /public. Everything else is private.
+Options -Indexes
+DirectoryIndex public/index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block dotfiles such as .env and .git from ever being served.
+    RewriteRule "(^|/)\.(?!well-known)" - [F,L]
+
+    # Block source, schema, migrations, storage and tests.
+    RewriteRule ^(src|database|scripts|storage|tests)(/|$) - [F,L]
+
+    # Send all application traffic through the public front controller.
+    RewriteCond %{REQUEST_URI} !/backend/public/
+    RewriteRule ^ public/index.php [QSA,L]
+</IfModule>
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+</IfModule>

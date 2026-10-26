@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#06352A">
+  <meta name="description" content="Al-Falaah School portal dashboard — an interactive design preview for students, parents, teachers and administrators.">
+  <title>Portal Dashboard — Al-Falaah Nursery, Primary &amp; Secondary School</title>
+  <link rel="icon" type="image/jpeg" href="assets/img/myfav.jpg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/dashboard.css?v=3">
+</head>
+<body class="app-body">
+
+  <a class="skip-link" href="#mainContent">Skip to dashboard content</a>
+
+  <div class="app-shell">
+    <div class="scrim" data-scrim></div>
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar" id="sidebar" aria-label="Portal navigation">
+      <div class="sidebar__head">
+        <a class="sidebar__brand" href="index.html" aria-label="Al-Falaah home">
+          <span class="sidebar__mark">
+            <img src="assets/img/myfav.jpg" alt="Al-Falaah School logo" width="1024" height="1024">
+          </span>
+          <span class="sidebar__brand-text">
+            <strong>Al-Falaah</strong>
+            <span>School Portal</span>
+          </span>
+        </a>
+        <button class="sidebar__close" type="button" data-drawer-close aria-label="Close portal menu">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="sidebar__role" data-role-chip></div>
+      <nav class="sidebar__nav" id="portalNav" aria-label="Portal sections"></nav>
+
+      <div class="sidebar__foot">
+        <p class="preview-note"><i data-lucide="info"></i> Design preview · sample data only</p>
+        <div data-sidebar-user></div>
+        <a class="sidebar__back" href="index.html"><i data-lucide="arrow-left"></i> Back to website</a>
+      </div>
+    </aside>
+
+    <!-- ================= MAIN ================= -->
+    <div class="app-main">
+      <header class="topbar">
+        <div class="topbar__left">
+          <button class="icon-btn topbar__menu" type="button" data-drawer-open aria-controls="sidebar" aria-expanded="false" aria-label="Open portal menu">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="topbar__context">
+            <span class="topbar__school">Al-Falaah School</span>
+            <span class="term-chip"><i data-lucide="calendar-days"></i> First Term · 2026/2027</span>
+          </div>
+        </div>
+
+        <div class="topbar__right">
+          <span class="prototype-pill" title="Interactive design preview using sample school data"><span class="prototype-pill__dot" aria-hidden="true"></span> Sample data</span>
+
+          <label class="role-switch">
+            <span class="role-switch__label">Viewing as</span>
+            <select id="roleSelect" aria-label="Preview the dashboard as another role">
+              <option value="student">Student</option>
+              <option value="parent">Parent</option>
+              <option value="teacher">Teacher</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+
+          <button class="icon-btn topbar__search" type="button" data-demo="Global search across students, results and announcements arrives with the backend build." aria-label="Search the portal">
+            <i data-lucide="search"></i>
+          </button>
+
+          <div class="popover-wrap">
+            <button class="icon-btn" type="button" data-notif-toggle aria-expanded="false" aria-haspopup="true" aria-controls="notifPanel" aria-label="Notifications">
+              <i data-lucide="bell"></i>
+              <span class="notif-dot" data-notif-dot aria-hidden="true"></span>
+            </button>
+            <div class="popover" id="notifPanel" data-notif-panel hidden></div>
+          </div>
+
+          <div class="popover-wrap">
+            <button class="profile-btn" type="button" data-profile-toggle aria-expanded="false" aria-haspopup="true" aria-controls="profilePanel">
+              <span class="avatar avatar--top" data-top-avatar>AA</span>
+              <span class="profile-btn__name" data-top-name>Aisha</span>
+              <i data-lucide="chevron-down" class="profile-btn__caret"></i>
+            </button>
+            <div class="popover popover--profile" id="profilePanel" data-profile-panel hidden></div>
+          </div>
+        </div>
+      </header>
+
+      <main class="app-content" id="mainContent" tabindex="-1">
+        <div id="viewRoot" class="view">
+          <p class="view-loading">Loading your portal…</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= MOBILE TAB BAR ================= -->
+  <nav class="tabbar" id="tabbar" aria-label="Quick navigation"></nav>
+
+  <div class="toast-stack" id="toastStack" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="viewAnnounce" aria-live="polite"></div>
+
+  <noscript>
+    <div class="noscript-note">
+      <strong>JavaScript is required.</strong> This portal dashboard is an interactive design preview and needs JavaScript enabled.
+    </div>
+  </noscript>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/dashboard.js?v=2"></script>
+</body>
+</html>

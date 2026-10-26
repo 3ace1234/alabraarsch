@@ -694,6 +694,21 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 .login-panel { display: none; }
 .login-panel.is-active { display: block; animation: fadeUp .35s ease; }
 
+.login-card__preview {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 14px 32px;
+  background: var(--color-soft-green);
+  border-top: 1px solid var(--color-border);
+  font-size: .82rem;
+}
+.login-card__preview > span { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; color: var(--color-text-muted); }
+.login-card__preview svg { width: 15px; height: 15px; }
+.login-card__preview a { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--color-primary); }
+.login-card__preview a:hover { color: var(--color-primary-dark); }
+.login-card__preview a svg { transition: transform .18s ease; }
+.login-card__preview a:hover svg { transform: translateX(2px); }
+@media (max-width: 640px) { .login-card__preview { padding: 14px 20px; } }
+
 .demo-notice {
   display: flex; gap: 12px; align-items: flex-start;
   background: var(--color-soft-warm); border: 1px solid var(--color-accent-light); color: var(--color-primary-dark); border-radius: 12px;
