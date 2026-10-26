@@ -44,7 +44,7 @@ final class ApiClient
         @unlink($this->cookieFile);
     }
 
-    public function request(string $method, string $path, ?array $body = null, bool $csrf = true): array
+    public function request(string $method, string $path, array|object|null $body = null, bool $csrf = true): array
     {
         $handle = curl_init($this->base . $path);
         if ($handle === false) {
@@ -106,7 +106,7 @@ final class ApiClient
         return $this->request('GET', $path, null, $csrf);
     }
 
-    public function post(string $path, ?array $body = null, bool $csrf = true): array
+    public function post(string $path, array|object|null $body = null, bool $csrf = true): array
     {
         return $this->request('POST', $path, $body, $csrf);
     }
@@ -171,6 +171,9 @@ try {
     expects($anonymous->get('/health', false), 200, 'public: health');
     expects($anonymous->get('/dashboard', false), 401, 'anonymous: dashboard is protected');
     expects($anonymous->get('/does-not-exist', false), 404, 'anonymous: unknown route');
+    expects($anonymous->get('/session'), 200, 'anonymous: session bootstrap');
+    expects($anonymous->post('/auth/login', (object) []), 422, 'anonymous: empty JSON object is accepted');
+    expects($anonymous->post('/auth/login', []), 400, 'anonymous: JSON list is rejected');
 
     $student = signIn($base, 'aisha.abdullahi@student.alfalaah.edu.ng', $password, 'student');
     $dashboard = expects($student->get('/dashboard'), 200, 'student: dashboard');

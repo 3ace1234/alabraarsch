@@ -88,6 +88,14 @@ final class Request
             return self::$body;
         }
 
+        // json_decode('{}', true) returns an empty PHP array, which looks the
+        // same as a JSON list to array_is_list(). Treat an empty object as an
+        // empty request body so parameterless writes can omit every field.
+        if ($raw === '{}') {
+            self::$body = [];
+            return self::$body;
+        }
+
         try {
             $decoded = json_decode($raw, true, 64, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
