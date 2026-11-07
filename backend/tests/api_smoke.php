@@ -174,6 +174,9 @@ try {
     expects($anonymous->get('/session'), 200, 'anonymous: session bootstrap');
     expects($anonymous->post('/auth/login', (object) []), 422, 'anonymous: empty JSON object is accepted');
     expects($anonymous->post('/auth/login', []), 400, 'anonymous: JSON list is rejected');
+    expects($anonymous->post('/admissions', (object) [], false), 403, 'anonymous: admission requires CSRF');
+    expects($anonymous->post('/admissions', (object) []), 422, 'anonymous: incomplete admission rejected');
+    expects($anonymous->post('/contact', (object) []), 422, 'anonymous: incomplete contact message rejected');
 
     $student = signIn($base, 'aisha.abdullahi@student.alfalaah.edu.ng', $password, 'student');
     $dashboard = expects($student->get('/dashboard'), 200, 'student: dashboard');
@@ -224,7 +227,34 @@ try {
     $classId = $teacherClasses['data'][0]['id'];
     expects($teacher->get('/teacher/schedule'), 200, 'teacher: schedule');
     expects($teacher->get('/teacher/result-sheets'), 200, 'teacher: result sheets');
-    expects($teacher->get('/teacher/attendance?class_id=' . $classId), 200, 'teacher: attendance register');
+
+    $teacherTerms = expects($teacher->get('/terms'), 200, 'teacher: term list');
+    $attendanceTerm = null;
+    foreach ($teacherTerms['data'] ?? [] as $term) {
+        if (!empty($term['is_current'])) {
+            $attendanceTerm = $term;
+            break;
+        }
+    }
+
+    // Attendance is weekday-only and must fall inside the current term, so a
+    // plain "today" request fails when the suite runs at a weekend. Walk back
+    // to the most recent school day within the term instead.
+    $attendanceDate = date('Y-m-d');
+    for ($i = 0; $i < 14; $i++) {
+        $isWeekday = (int) date('N', strtotime($attendanceDate)) <= 5;
+        $inTerm = $attendanceTerm === null
+            || ($attendanceDate >= $attendanceTerm['starts_on'] && $attendanceDate <= $attendanceTerm['ends_on']);
+        if ($isWeekday && $inTerm) {
+            break;
+        }
+        $attendanceDate = date('Y-m-d', strtotime($attendanceDate . ' -1 day'));
+    }
+    expects(
+        $teacher->get('/teacher/attendance?class_id=' . $classId . '&date=' . $attendanceDate),
+        200,
+        'teacher: attendance register'
+    );
     expects($teacher->get('/teacher/assignments?class_id=' . $classId), 200, 'teacher: assignments');
     expects($teacher->get('/teacher/students?class_id=' . $classId), 200, 'teacher: class students');
     expects($teacher->get('/admin/finance'), 403, 'teacher: cannot view finance');
@@ -238,10 +268,30 @@ try {
     expects($admin->get('/admin/result-sheets'), 200, 'admin: result sheets');
     expects($admin->get('/admin/admissions?per_page=3'), 200, 'admin: admissions');
     expects($admin->get('/admin/finance'), 200, 'admin: finance');
+    expects($admin->get('/admin/messages?per_page=3'), 200, 'admin: message inbox');
     expects($admin->get('/admin/teachers'), 200, 'admin: teacher list');
-    expects($admin->get('/terms'), 200, 'admin: term list');
-    expects($admin->get('/classes'), 200, 'admin: class list');
+    $terms = expects($admin->get('/terms'), 200, 'admin: term list');
+    $classes = expects($admin->get('/classes'), 200, 'admin: class list');
     expects($admin->get('/subjects'), 200, 'admin: subject list');
+
+    $currentTerm = null;
+    foreach ($terms['data'] ?? [] as $term) {
+        if (!empty($term['is_current'])) {
+            $currentTerm = $term;
+            break;
+        }
+    }
+    $firstClass = $classes['data'][0] ?? null;
+    if ($currentTerm !== null && $firstClass !== null) {
+        expects(
+            $admin->get(
+                '/admin/timetable?class_id=' . rawurlencode($firstClass['id']) .
+                '&term_id=' . rawurlencode($currentTerm['id'])
+            ),
+            200,
+            'admin: timetable workspace'
+        );
+    }
 
     expects($student->post('/auth/logout'), 204, 'student: logout');
     expects($student->get('/auth/me'), 401, 'student: session ended');

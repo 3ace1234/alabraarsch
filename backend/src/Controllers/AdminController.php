@@ -374,6 +374,77 @@ final class AdminController
         Response::ok(self::presentAdmission($fresh));
     }
 
+    public static function messages(): never
+    {
+        Auth::requireRole('admin');
+        [$page, $perPage] = Validator::pagination(
+            self::scalarQuery('page'),
+            self::scalarQuery('per_page')
+        );
+        $status = Validator::enum(
+            Request::query('status'),
+            'status',
+            ['new', 'in_progress', 'resolved', 'archived'],
+            false
+        );
+        $search = Validator::string(Request::query('search'), 'search', 0, 120, false) ?? '';
+
+        $where = ['1 = 1'];
+        $params = [];
+        if ($status !== null) {
+            $where[] = 'status = ?';
+            $params[] = $status;
+        }
+        if ($search !== '') {
+            $where[] = '(name LIKE ? OR email LIKE ? OR phone LIKE ? OR subject LIKE ? OR message LIKE ?)';
+            $term = '%' . $search . '%';
+            array_push($params, $term, $term, $term, $term, $term);
+        }
+
+        $whereSql = implode(' AND ', $where);
+        $total = (int) Database::fetchValue('SELECT COUNT(*) FROM contact_messages WHERE ' . $whereSql, $params);
+        $offset = ($page - 1) * $perPage;
+        $rows = Database::fetchAll(
+            "SELECT * FROM contact_messages WHERE {$whereSql}
+             ORDER BY FIELD(status, 'new','in_progress','resolved','archived'), created_at DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+
+        Response::ok(array_map(
+            static fn (array $row): array => self::presentMessage($row),
+            $rows
+        ), 200, [
+            'pagination' => Database::paginate($total, $page, $perPage),
+        ]);
+    }
+
+    public static function updateMessage(array $params): never
+    {
+        $user = Auth::requireRole('admin');
+        $uuid = Validator::uuid($params['id'] ?? null, 'id');
+        $message = Database::fetch('SELECT * FROM contact_messages WHERE uuid = ? LIMIT 1', [$uuid]);
+        if ($message === null) {
+            throw HttpException::notFound('That message was not found.');
+        }
+
+        $data = Request::body();
+        $status = Validator::enum($data['status'] ?? null, 'status', [
+            'new', 'in_progress', 'resolved', 'archived',
+        ]);
+
+        Database::execute('UPDATE contact_messages SET status = ? WHERE id = ?', [$status, (int) $message['id']]);
+
+        Audit::record('contact.updated', 'contact_message', $uuid, ['status' => $status], (int) $user['id']);
+
+        $fresh = Database::fetch('SELECT * FROM contact_messages WHERE id = ?', [(int) $message['id']]);
+        if ($fresh === null) {
+            throw HttpException::server('The message could not be reloaded.');
+        }
+
+        Response::ok(self::presentMessage($fresh));
+    }
+
     public static function finance(): never
     {
         Auth::requireRole('admin');
@@ -673,9 +744,29 @@ final class AdminController
             'phone' => $row['phone'],
             'level' => $row['level'],
             'level_label' => Academics::levelLabel($row['level']),
+            'class_label' => $row['class_label'] ?? null,
+            'date_of_birth' => $row['date_of_birth'] ?? null,
+            'gender' => $row['gender'] ?? null,
+            'previous_school' => $row['previous_school'] ?? null,
             'status' => $row['status'],
             'status_label' => ucfirst($row['status']),
             'notes' => $row['notes'],
+            'created_at' => $row['created_at'],
+            'updated_at' => $row['updated_at'],
+        ];
+    }
+
+    private static function presentMessage(array $row): array
+    {
+        return [
+            'id' => $row['uuid'],
+            'name' => $row['name'],
+            'email' => $row['email'],
+            'phone' => $row['phone'],
+            'subject' => $row['subject'],
+            'message' => $row['message'],
+            'status' => $row['status'],
+            'status_label' => ucfirst(str_replace('_', ' ', $row['status'])),
             'created_at' => $row['created_at'],
             'updated_at' => $row['updated_at'],
         ];

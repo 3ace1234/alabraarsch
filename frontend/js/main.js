@@ -22,6 +22,8 @@
     initAccordion();
     initSlider();
     initForms();
+    initAdmissionForm();
+    initContactForm();
     initNewsletter();
     initBackToTop();
     initActiveLink();
@@ -257,7 +259,7 @@
     render();
   }
 
-  /* ---------- Forms (frontend demo with validation) ---------- */
+  /* ---------- Forms (validated public intake) ---------- */
   function initForms() {
     document.querySelectorAll("[data-form]").forEach(function (form) {
       form.addEventListener("submit", function (e) {
@@ -275,7 +277,7 @@
         if (ok) {
           msg.classList.remove("form-msg--err");
           msg.classList.add("form-msg--ok", "is-visible");
-          msg.textContent = "Thank you! This is a frontend demo — your application has been captured. The full system (submission, portals and records) arrives with the backend update. Assalamu Alaikum. Shukran!";
+          msg.textContent = "Thank you! Your message has been captured.";
           form.reset();
           msg.scrollIntoView({ behavior: "smooth", block: "nearest" });
         } else {
@@ -285,6 +287,149 @@
         }
         window.scrollTo && msg.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
+    });
+  }
+
+  function todayValue() {
+    var now = new Date();
+    var month = String(now.getMonth() + 1).padStart(2, "0");
+    var day = String(now.getDate()).padStart(2, "0");
+    return now.getFullYear() + "-" + month + "-" + day;
+  }
+
+  function collectForm(form) {
+    var data = {};
+    Array.prototype.forEach.call(form.elements, function (field) {
+      if (!field.name) return;
+      data[field.name] = field.value.trim ? field.value.trim() : field.value;
+    });
+    return data;
+  }
+
+  function clearFormError(form) {
+    var msg = form.querySelector(".form-msg");
+    if (msg) {
+      msg.textContent = "";
+      msg.classList.remove("is-visible", "form-msg--ok", "form-msg--err");
+    }
+    form.querySelectorAll(".is-invalid").forEach(function (field) {
+      field.classList.remove("is-invalid");
+    });
+  }
+
+  function setFormError(form, message, fields) {
+    var msg = form.querySelector(".form-msg");
+    if (msg) {
+      msg.textContent = message;
+      msg.classList.remove("form-msg--ok");
+      msg.classList.add("form-msg--err", "is-visible");
+    }
+    if (fields && typeof fields === "object") {
+      Object.keys(fields).forEach(function (name) {
+        var field = form.querySelector('[name="' + name + '"]');
+        if (field) field.classList.add("is-invalid");
+      });
+    }
+  }
+
+  function setFormSuccess(form, message) {
+    var msg = form.querySelector(".form-msg");
+    if (!msg) return;
+    msg.textContent = message;
+    msg.classList.remove("form-msg--err");
+    msg.classList.add("form-msg--ok", "is-visible");
+    msg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function validatePublicForm(form) {
+    var ok = true;
+    form.querySelectorAll("[required]").forEach(function (field) {
+      var value = field.value.trim();
+      var valid = value !== "";
+      if (valid && field.type === "email") valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      if (valid && field.type === "tel") valid = value.replace(/\D/g, "").length >= 7;
+      field.classList.toggle("is-invalid", !valid);
+      if (!valid) ok = false;
+    });
+
+    var email = form.querySelector('[name="email"]');
+    if (email && email.value.trim() !== "") {
+      var validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+      email.classList.toggle("is-invalid", !validEmail);
+      if (!validEmail) ok = false;
+    }
+
+    if (ok) clearFormError(form);
+    return ok;
+  }
+
+  function setFormBusy(form, busy, label) {
+    var button = form.querySelector('button[type="submit"]');
+    if (!button) return;
+    if (!button.getAttribute("data-label")) {
+      button.setAttribute("data-label", button.innerHTML);
+    }
+    button.disabled = busy;
+    if (busy) {
+      button.innerHTML = '<i data-lucide="loader-circle"></i> ' + (label || "Sending\u2026");
+      if (window.lucide) window.lucide.createIcons();
+    } else {
+      button.innerHTML = button.getAttribute("data-label");
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
+  async function submitIntake(form, path, successText) {
+    if (!validatePublicForm(form)) return;
+
+    var api = window.AlFalaahApi;
+    if (!api) {
+      setFormError(form, "The school portal client could not load. Refresh the page and try again.");
+      return;
+    }
+
+    setFormBusy(form, true);
+    try {
+      await api.bootstrap();
+      var payload = await api.post(path, collectForm(form));
+      var reference = payload && payload.data ? payload.data.reference : "";
+      setFormSuccess(form, successText + (reference ? " Your reference is " + reference + "." : ""));
+      form.reset();
+    } catch (error) {
+      setFormError(form, api.message(error), error && error.fields);
+    } finally {
+      setFormBusy(form, false);
+    }
+  }
+
+  function initAdmissionForm() {
+    var form = document.querySelector("[data-admission-form]");
+    if (!form) return;
+
+    var dob = form.querySelector('[name="date_of_birth"]');
+    if (dob) dob.max = todayValue();
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      submitIntake(
+        form,
+        "/admissions",
+        "Thank you! Your application has reached the school office and our admission team will contact you. Assalamu Alaikum."
+      );
+    });
+  }
+
+  function initContactForm() {
+    var form = document.querySelector("[data-contact-form]");
+    if (!form) return;
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      submitIntake(
+        form,
+        "/contact",
+        "Thank you! Your message has reached the school office. We will reply as soon as possible."
+      );
     });
   }
 

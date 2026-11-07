@@ -47,6 +47,20 @@ production virtual host.
 `--fresh` drops and recreates every portal table. Never run it against data you
 want to keep. Use `--no-seed` to apply the schema without demo data.
 
+### Applying schema updates
+
+`php backend/scripts/migrate.php` upgrades an existing database without dropping
+it. It is idempotent, so it is safe to run more than once. It requires
+`DB_ADMIN_USERNAME` and `DB_ADMIN_PASSWORD` from `.env` because it alters table
+definitions, then adds the admission columns used by the website form and creates
+the `contact_messages` table when either is missing:
+
+```bash
+php backend/scripts/migrate.php
+```
+
+Run migrations before deploying a frontend that submits to new intake endpoints.
+
 Demo accounts are seeded only when `DEMO_PASSWORD` is present in `.env`:
 
 | Role | Email |
@@ -71,6 +85,7 @@ backend/
   database/schema.sql     Full relational schema
   database/seed.php       Demo school data
   scripts/install.php     Schema installer and database account provisioning
+  scripts/migrate.php     Idempotent schema upgrades for an existing database
   tests/api_smoke.php     Read-only end-to-end API smoke test
   storage/                Logs and PHP sessions (not public)
 ```
@@ -214,6 +229,14 @@ All paths are relative to `/api`. `auth` means a signed-in session is required.
 | POST | `/auth/logout` | auth + CSRF | End the session |
 | GET | `/auth/me` | auth | Current user and CSRF token |
 | POST | `/auth/password` | auth + CSRF | Change the current password |
+| POST | `/admissions` | public + CSRF | Submit a website admission application |
+| POST | `/contact` | public + CSRF | Submit a website contact message |
+
+Public intake endpoints are unauthenticated but still require a CSRF token from
+`GET /api/session`. They validate and normalise the input, reject honeypot
+submissions, throttled to four submissions per IP per minute, and record every
+write in `audit_logs`. Successful submissions return `201` with a short
+`reference` value for the family to quote.
 
 ### Shared portal data
 
@@ -281,6 +304,8 @@ exists.
 | POST | `/admin/terms/{id}/publish` | admin + CSRF | Publish all approved sheets for a term |
 | GET | `/admin/admissions` | admin | Paginated admission enquiries |
 | PATCH | `/admin/admissions/{id}` | admin + CSRF | Update admission status or notes |
+| GET | `/admin/messages` | admin | Paginated contact inbox |
+| PATCH | `/admin/messages/{id}` | admin + CSRF | Update contact message status |
 | GET | `/admin/finance` | admin | Term fee summary, invoices and recent payments |
 | POST | `/admin/payments` | admin + CSRF | Record a payment against an invoice |
 | POST | `/admin/invoices` | admin + CSRF | Create a fee invoice |

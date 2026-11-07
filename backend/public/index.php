@@ -7,6 +7,7 @@ use AlFalaah\Controllers\AnnouncementController;
 use AlFalaah\Controllers\AuthController;
 use AlFalaah\Controllers\DashboardController;
 use AlFalaah\Controllers\HealthController;
+use AlFalaah\Controllers\IntakeController;
 use AlFalaah\Controllers\NotificationController;
 use AlFalaah\Controllers\ReferenceController;
 use AlFalaah\Controllers\StudentController;
@@ -145,6 +146,8 @@ $router = new Router();
 $router->get('/api/health', [HealthController::class, 'show'], ['auth' => false]);
 $router->get('/api/session', [AuthController::class, 'session'], ['auth' => false]);
 $router->post('/api/auth/login', [AuthController::class, 'login'], ['auth' => false]);
+$router->post('/api/admissions', [IntakeController::class, 'admission'], ['auth' => false]);
+$router->post('/api/contact', [IntakeController::class, 'contact'], ['auth' => false]);
 
 $router->post('/api/auth/logout', [AuthController::class, 'logout']);
 $router->get('/api/auth/me', [AuthController::class, 'me']);
@@ -197,6 +200,8 @@ $router->post('/api/admin/result-sheets/{id}/return', [AdminController::class, '
 $router->post('/api/admin/terms/{id}/publish', [AdminController::class, 'publishTerm'], ['roles' => ['admin']]);
 $router->get('/api/admin/admissions', [AdminController::class, 'admissions'], ['roles' => ['admin']]);
 $router->patch('/api/admin/admissions/{id}', [AdminController::class, 'updateAdmission'], ['roles' => ['admin']]);
+$router->get('/api/admin/messages', [AdminController::class, 'messages'], ['roles' => ['admin']]);
+$router->patch('/api/admin/messages/{id}', [AdminController::class, 'updateMessage'], ['roles' => ['admin']]);
 $router->get('/api/admin/finance', [AdminController::class, 'finance'], ['roles' => ['admin']]);
 $router->post('/api/admin/payments', [AdminController::class, 'recordPayment'], ['roles' => ['admin']]);
 $router->post('/api/admin/invoices', [AdminController::class, 'createInvoice'], ['roles' => ['admin']]);

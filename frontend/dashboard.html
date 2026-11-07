@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=13">
-  <link rel="stylesheet" href="css/dashboard.css?v=5">
+  <link rel="stylesheet" href="css/dashboard.css?v=6">
 </head>
 <body class="app-body">
 
@@ -95,6 +95,21 @@
   <!-- ================= MOBILE TAB BAR ================= -->
   <nav class="tabbar" id="tabbar" aria-label="Quick navigation"></nav>
 
+  <dialog class="admin-dialog" id="adminDialog" aria-labelledby="adminDialogTitle">
+    <div class="admin-dialog__panel">
+      <header class="admin-dialog__head">
+        <div>
+          <span class="admin-dialog__eyebrow" data-dialog-eyebrow></span>
+          <h2 id="adminDialogTitle" data-dialog-title></h2>
+        </div>
+        <button class="icon-btn" type="button" data-admin-dialog-close aria-label="Close dialog">
+          <i data-lucide="x"></i>
+        </button>
+      </header>
+      <div class="admin-dialog__body" data-dialog-body></div>
+    </div>
+  </dialog>
+
   <div class="toast-stack" id="toastStack" role="status" aria-live="polite"></div>
   <div class="sr-only" id="viewAnnounce" aria-live="polite"></div>
 
@@ -106,6 +121,6 @@
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="js/api.js?v=1"></script>
-  <script src="js/dashboard.js?v=5"></script>
+  <script src="js/dashboard.js?v=6"></script>
 </body>
 </html>

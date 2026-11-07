@@ -342,21 +342,41 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS admission_applications (
-    id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    uuid           CHAR(36)        NOT NULL,
-    applicant_name VARCHAR(120)    NOT NULL,
-    guardian_name  VARCHAR(120)    NOT NULL,
-    email          VARCHAR(190)    NULL,
-    phone          VARCHAR(30)     NULL,
-    level          ENUM('nursery','primary','junior_secondary','senior_secondary') NOT NULL,
-    status         ENUM('new','assessment','offer','enrolled','declined') NOT NULL DEFAULT 'new',
-    notes          TEXT            NULL,
-    created_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    uuid            CHAR(36)        NOT NULL,
+    applicant_name  VARCHAR(120)    NOT NULL,
+    guardian_name   VARCHAR(120)    NOT NULL,
+    email           VARCHAR(190)    NULL,
+    phone           VARCHAR(30)     NULL,
+    level           ENUM('nursery','primary','junior_secondary','senior_secondary') NOT NULL,
+    class_label     VARCHAR(60)     NULL,
+    date_of_birth   DATE            NULL,
+    gender          ENUM('male','female') NULL,
+    previous_school VARCHAR(160)    NULL,
+    status          ENUM('new','assessment','offer','enrolled','declined') NOT NULL DEFAULT 'new',
+    notes           TEXT            NULL,
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_admissions_uuid (uuid),
     KEY idx_admissions_status (status),
     KEY idx_admissions_level (level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    uuid       CHAR(36)        NOT NULL,
+    name       VARCHAR(120)    NOT NULL,
+    email      VARCHAR(190)    NULL,
+    phone      VARCHAR(30)     NULL,
+    subject    VARCHAR(120)    NOT NULL,
+    message    TEXT            NOT NULL,
+    status     ENUM('new','in_progress','resolved','archived') NOT NULL DEFAULT 'new',
+    created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_contact_messages_uuid (uuid),
+    KEY idx_contact_messages_status (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS assignments (

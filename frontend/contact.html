@@ -117,35 +117,39 @@
               <span class="eyebrow">Send a Message</span>
               <h2 class="title" style="font-size:1.7rem;">How can we help?</h2>
             </div>
-            <form data-form novalidate>
+            <form data-contact-form novalidate>
+              <div class="hp-field" aria-hidden="true">
+                <label for="contactWebsite">Leave this field empty</label>
+                <input id="contactWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+              </div>
               <div class="form-grid">
                 <div class="field">
                   <label for="cName">Full Name <span class="req">*</span></label>
-                  <input id="cName" type="text" placeholder="Your name" required>
+                  <input id="cName" name="name" type="text" placeholder="Your name" maxlength="120" autocomplete="name" required>
                 </div>
                 <div class="field">
                   <label for="cPhone">Phone Number <span class="req">*</span></label>
-                  <input id="cPhone" type="tel" placeholder="0803 000 0000" required>
+                  <input id="cPhone" name="phone" type="tel" placeholder="0803 000 0000" maxlength="30" autocomplete="tel" required>
                 </div>
                 <div class="field full">
                   <label for="cEmail">Email Address</label>
-                  <input id="cEmail" type="email" placeholder="you@example.com">
+                  <input id="cEmail" name="email" type="email" placeholder="you@example.com" maxlength="190" autocomplete="email">
                 </div>
                 <div class="field full">
                   <label for="cSubject">Subject <span class="req">*</span></label>
-                  <select id="cSubject" required>
+                  <select id="cSubject" name="subject" required>
                     <option value="" disabled selected>Choose a topic</option>
-                    <option>Admission enquiry</option>
-                    <option>School fees</option>
-                    <option>Child's progress</option>
-                    <option>Complaint (handled confidentially)</option>
-                    <option>Partnership or sponsorship</option>
-                    <option>Other</option>
+                    <option value="Admission enquiry">Admission enquiry</option>
+                    <option value="School fees">School fees</option>
+                    <option value="Child's progress">Child's progress</option>
+                    <option value="Complaint (handled confidentially)">Complaint (handled confidentially)</option>
+                    <option value="Partnership or sponsorship">Partnership or sponsorship</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
                 <div class="field full">
                   <label for="cMessage">Message <span class="req">*</span></label>
-                  <textarea id="cMessage" placeholder="Write your message here..." required></textarea>
+                  <textarea id="cMessage" name="message" placeholder="Write your message here..." maxlength="4000" required></textarea>
                   <span class="hint">Complaints are treated with care and confidentiality by the school office.</span>
                 </div>
               </div>
@@ -266,6 +270,7 @@
   <button class="to-top" id="toTop" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/main.js?v=3"></script>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/main.js?v=5"></script>
 </body>
 </html>

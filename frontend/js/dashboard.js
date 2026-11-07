@@ -17,6 +17,8 @@
     });
   }
 
+  var dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
   function money(amount) {
     return "\u20A6" + asNumber(amount).toLocaleString("en-NG");
   }
@@ -87,7 +89,9 @@
     finance: {},
     classes: [],
     terms: [],
-    resultSheets: []
+    resultSheets: [],
+    announcements: [],
+    messages: []
   };
 
   /* ============================================================
@@ -168,7 +172,8 @@
         { key: "results", label: "Results", icon: "file-check-2", group: "Administration" },
         { key: "admissions", label: "Admissions", icon: "user-plus", group: "Administration" },
         { key: "finance", label: "Fees & finance", icon: "wallet", group: "Administration" },
-        { key: "announcements", label: "Announcements", icon: "megaphone", group: "School" }
+        { key: "announcements", label: "Announcements", icon: "megaphone", group: "School" },
+        { key: "messages", label: "Messages", icon: "mail", group: "School" }
       ],
       notifications: []
     }
@@ -184,7 +189,8 @@
     annFilter: "All",
     ready: false,
     attendance: null,
-    resultSheet: null
+    resultSheet: null,
+    adminTimetable: null
   };
 
   var DATA = {
@@ -194,11 +200,14 @@
     timetables: {},
     classes: [],
     terms: [],
+    subjects: [],
     adminStudents: [],
     adminTeachers: [],
     adminAdmissions: [],
     adminFinance: null,
-    adminResultSheets: []
+    adminResultSheets: [],
+    adminAnnouncements: [],
+    adminMessages: []
   };
 
   var API = window.AlFalaahApi;
@@ -614,12 +623,15 @@
       finance: extras.finance || null,
       classes: extras.classes || [],
       terms: extras.terms || [],
-      resultSheets: extras.resultSheets || []
+      resultSheets: extras.resultSheets || [],
+      announcements: extras.announcements || [],
+      messages: extras.messages || []
     };
 
     ROLES.admin.meta = "School administrator";
     setNavBadge("admin", "admissions", asNumber(pipeline.new) || (Array.isArray(ADMIN.admissions) ? ADMIN.admissions.filter(function (a) { return a.status === "new"; }).length : 0));
     setNavBadge("admin", "results", ADMIN.stats.pendingApprovals);
+    setNavBadge("admin", "messages", ADMIN.messages.filter(function (message) { return message.status === "new"; }).length || "");
     setNavBadge("admin", "finance", "");
   }
 
@@ -656,8 +668,11 @@
         { key: "adminAdmissions", call: API.get("/admin/admissions?per_page=100") },
         { key: "adminFinance", call: API.get("/admin/finance") },
         { key: "adminResultSheets", call: API.get("/admin/result-sheets") },
+        { key: "adminAnnouncements", call: API.get("/admin/announcements") },
+        { key: "adminMessages", call: API.get("/admin/messages?per_page=100") },
         { key: "classes", call: API.get("/classes") },
-        { key: "terms", call: API.get("/terms") }
+        { key: "terms", call: API.get("/terms") },
+        { key: "subjects", call: API.get("/subjects") }
       );
     }
 
@@ -690,8 +705,11 @@
       adminAdmissions: extras.adminAdmissions && extras.adminAdmissions.data ? extras.adminAdmissions.data : [],
       adminFinance: extras.adminFinance && extras.adminFinance.data ? extras.adminFinance.data : null,
       adminResultSheets: extras.adminResultSheets && extras.adminResultSheets.data ? extras.adminResultSheets.data : [],
+      adminAnnouncements: extras.adminAnnouncements && extras.adminAnnouncements.data ? extras.adminAnnouncements.data : [],
+      adminMessages: extras.adminMessages && extras.adminMessages.data ? extras.adminMessages.data : [],
       classes: extras.classes && extras.classes.data ? extras.classes.data : [],
       terms: extras.terms && extras.terms.data ? extras.terms.data : [],
+      subjects: extras.subjects && extras.subjects.data ? extras.subjects.data : [],
       failures: failures
     };
   }
@@ -709,8 +727,11 @@
     DATA.adminAdmissions = data.adminAdmissions;
     DATA.adminFinance = data.adminFinance;
     DATA.adminResultSheets = data.adminResultSheets;
+    DATA.adminAnnouncements = data.adminAnnouncements;
+    DATA.adminMessages = data.adminMessages;
     DATA.classes = data.classes;
     DATA.terms = data.terms;
+    DATA.subjects = data.subjects;
 
     SCHOOL.session = dash.term && dash.term.session ? dash.term.session.name : "";
     SCHOOL.term = dash.term ? dash.term.name : "";
@@ -1077,6 +1098,7 @@
         case "admissions": html = adminAdmissionsView(); break;
         case "finance": html = adminFinanceView(); break;
         case "announcements": html = announcementsView(); break;
+        case "messages": html = adminMessagesView(); break;
         default: html = overviewView();
       }
     }
@@ -1092,6 +1114,9 @@
     }
     if ((state.role === "teacher" || state.role === "admin") && state.section === "results" && state.resultSheet) {
       loadResultSheetWorkspace();
+    }
+    if (state.role === "admin" && state.section === "academics") {
+      loadAdminTimetable(false);
     }
   }
 
@@ -1382,6 +1407,31 @@
       return;
     }
 
+    if (event.target.closest("[data-admin-dialog-close]")) {
+      event.preventDefault();
+      closeAdminDialog();
+      return;
+    }
+
+    var adminDialog = document.getElementById("adminDialog");
+    if (adminDialog && event.target === adminDialog) {
+      closeAdminDialog();
+      return;
+    }
+
+    var adminAction = event.target.closest("[data-admin-action]");
+    if (adminAction) {
+      event.preventDefault();
+      handleAdminAction(adminAction);
+      return;
+    }
+
+    if (event.target.closest("[data-tt-refresh]")) {
+      event.preventDefault();
+      loadAdminTimetable(true);
+      return;
+    }
+
     var viewLink = event.target.closest("[data-view]");
     if (viewLink) {
       event.preventDefault();
@@ -1413,6 +1463,11 @@
 
   function onDocumentSubmit(event) {
     var form = event.target;
+    if (form.matches("[data-admin-form]")) {
+      event.preventDefault();
+      submitAdminForm(form);
+      return;
+    }
     if (form.matches("[data-attendance-filter]")) {
       event.preventDefault();
       readAttendanceFilter(form);
@@ -1431,6 +1486,25 @@
   }
 
   function onDocumentChange(event) {
+    var timetableFilter = event.target.closest("[data-admin-timetable-filter]");
+    if (timetableFilter) {
+      var timetable = adminTimetableState();
+      var classField = timetableFilter.querySelector('[name="class_id"]');
+      var termField = timetableFilter.querySelector('[name="term_id"]');
+      if (classField && classField.value) timetable.classId = classField.value;
+      if (termField && termField.value) timetable.termId = termField.value;
+      loadAdminTimetable(true);
+      return;
+    }
+
+    var invoiceField = event.target.closest("[data-payment-invoice]");
+    if (invoiceField) {
+      var invoice = findById((ADMIN.finance && ADMIN.finance.invoices) || [], invoiceField.value);
+      var amountField = invoiceField.closest("form").querySelector('[name="amount"]');
+      if (invoice && amountField) amountField.value = invoice.balance;
+      return;
+    }
+
     var filter = event.target.closest("[data-attendance-filter]");
     if (filter) {
       readAttendanceFilter(filter);
@@ -2137,6 +2211,8 @@
      19. ANNOUNCEMENTS VIEW
      ============================================================ */
   function announcementsView() {
+    if (state.role === "admin") return adminAnnouncementsView();
+
     var list = announcementsFor(state.role);
     var tags = ["All"];
     list.forEach(function (a) {
@@ -2794,6 +2870,300 @@
   /* ============================================================
      21. ADMIN VIEWS
      ============================================================ */
+  /* ============================================================
+     20b. ADMIN MANAGEMENT HELPERS
+     ============================================================ */
+  var adminFieldSeq = 0;
+
+  function adminField(label, control, full) {
+    var nameMatch = /name="([^"]+)"/.exec(control);
+    var id = "";
+    if (nameMatch) {
+      adminFieldSeq += 1;
+      id = "adminField" + adminFieldSeq + "_" + nameMatch[1].replace(/[^A-Za-z0-9_-]/g, "");
+      control = control.replace(/^<(input|select|textarea)\b/i, '<$1 id="' + id + '"');
+    }
+    return '<div class="field' + (full ? " full" : "") + '"><label' +
+      (id ? ' for="' + id + '"' : "") + ">" + esc(label) + "</label>" + control + "</div>";
+  }
+
+  function adminInput(name, type, value, attrs) {
+    return '<input name="' + esc(name) + '" type="' + esc(type) + '" value="' + esc(value == null ? "" : value) + '"' +
+      (attrs ? " " + attrs : "") + ">";
+  }
+
+  function adminSelect(name, options, selected, attrs) {
+    return '<select name="' + esc(name) + '"' + (attrs ? " " + attrs : "") + ">" +
+      options.map(function (option) {
+        return '<option value="' + esc(option.value) + '"' +
+          (String(option.value) === String(selected == null ? "" : selected) ? " selected" : "") + ">" +
+          esc(option.label) + "</option>";
+      }).join("") + "</select>";
+  }
+
+  function adminTextarea(name, value, attrs) {
+    return '<textarea name="' + esc(name) + '"' + (attrs ? " " + attrs : "") + ">" +
+      esc(value == null ? "" : value) + "</textarea>";
+  }
+
+  function adminForm(marker, fields, submitLabel, hidden) {
+    return '<form data-admin-form="' + marker + '" novalidate>' + (hidden || "") +
+      '<div class="form-grid">' + fields + "</div>" +
+      '<div class="form-actions"><button class="btn btn--primary" type="submit">' + submitLabel + "</button>" +
+      '<p class="form-msg" role="status"></p></div></form>';
+  }
+
+  function openAdminDialog(title, eyebrow, body) {
+    var dialog = document.getElementById("adminDialog");
+    if (!dialog) return;
+    dialog.querySelector("[data-dialog-title]").textContent = title;
+    dialog.querySelector("[data-dialog-eyebrow]").textContent = eyebrow || "";
+    dialog.querySelector("[data-dialog-body]").innerHTML = body;
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "open");
+    icons();
+    var first = dialog.querySelector(".admin-dialog__body input:not([type=hidden]):not([type=checkbox]), .admin-dialog__body select, .admin-dialog__body textarea");
+    if (first) first.focus();
+  }
+
+  function closeAdminDialog() {
+    var dialog = document.getElementById("adminDialog");
+    if (!dialog) return;
+    if (typeof dialog.close === "function" && dialog.open) dialog.close();
+    else dialog.removeAttribute("open");
+    dialog.querySelector("[data-dialog-body]").innerHTML = "";
+  }
+
+  function adminFormData(form) {
+    var data = {};
+    new FormData(form).forEach(function (value, key) {
+      data[key] = typeof value === "string" ? value.trim() : value;
+    });
+    return data;
+  }
+
+  function markFormFields(form, fields) {
+    if (!fields || typeof fields !== "object") return;
+    Object.keys(fields).forEach(function (name) {
+      var input = form.querySelector('[name="' + name + '"]');
+      if (input) input.classList.add("is-invalid");
+    });
+  }
+
+  function classOptions(selected) {
+    return DATA.classes.map(function (classroom) {
+      return { value: classroom.id, label: classroom.name };
+    });
+  }
+
+  function termOptions(selected) {
+    return DATA.terms.map(function (term) {
+      return { value: term.id, label: term.label || (term.name + (term.session ? ", " + term.session.name : "")) };
+    });
+  }
+
+  function subjectOptions() {
+    return DATA.subjects.map(function (subject) {
+      return { value: subject.id, label: subject.name };
+    });
+  }
+
+  function teacherOptions(includeBlank) {
+    var options = includeBlank === false ? [] : [{ value: "", label: "No teacher assigned" }];
+    return options.concat(ADMIN.teachers.map(function (teacher) {
+      return { value: teacher.id, label: teacher.name };
+    }));
+  }
+
+  async function reloadAdminStudents() {
+    var payload = await API.get("/admin/students?per_page=100");
+    DATA.adminStudents = payload && payload.data ? payload.data : [];
+    ADMIN.students = DATA.adminStudents;
+  }
+
+  async function reloadAdminAnnouncements() {
+    var results = await Promise.allSettled([
+      API.get("/admin/announcements"),
+      API.get("/announcements")
+    ]);
+    if (results[0].status === "fulfilled") {
+      DATA.adminAnnouncements = results[0].value && results[0].value.data ? results[0].value.data : [];
+      ADMIN.announcements = DATA.adminAnnouncements;
+    }
+    if (results[1].status === "fulfilled" && results[1].value && results[1].value.data) {
+      ANNOUNCEMENTS = normalizeAnnouncements(results[1].value.data);
+    }
+  }
+
+  async function reloadAdminMessages() {
+    var payload = await API.get("/admin/messages?per_page=100");
+    DATA.adminMessages = payload && payload.data ? payload.data : [];
+    ADMIN.messages = DATA.adminMessages;
+  }
+
+  async function reloadAdminFinance() {
+    var payload = await API.get("/admin/finance");
+    DATA.adminFinance = payload && payload.data ? payload.data : null;
+    ADMIN.finance = DATA.adminFinance;
+  }
+
+  function refreshAdminBadges() {
+    setNavBadge("admin", "admissions", (ADMIN.admissions || []).filter(function (row) { return row.status === "new"; }).length || "");
+    setNavBadge("admin", "messages", (ADMIN.messages || []).filter(function (row) { return row.status === "new"; }).length || "");
+    renderSidebar();
+  }
+
+  function findById(list, id) {
+    return (list || []).filter(function (row) { return row.id === id; })[0] || null;
+  }
+
+  function handleAdminAction(button) {
+    var action = button.getAttribute("data-admin-action");
+    var id = button.getAttribute("data-id");
+
+    if (action === "student-create") return openStudentDialog(null);
+    if (action === "student-edit") return openStudentDialog(findById(ADMIN.students, id));
+    if (action === "announcement-create") return openAnnouncementDialog(null);
+    if (action === "announcement-edit") return openAnnouncementDialog(findById(DATA.adminAnnouncements, id));
+    if (action === "announcement-archive") return archiveAdminAnnouncement(id);
+    if (action === "admission-edit") return openAdmissionDialog(findById(ADMIN.admissions, id));
+    if (action === "message-edit") return openMessageDialog(findById(DATA.adminMessages, id));
+    if (action === "invoice-create") return openInvoiceDialog();
+    if (action === "payment-create") return openPaymentDialog(button.getAttribute("data-invoice-id") || "");
+    if (action === "timetable-add") {
+      return openTimetableDialog(button.getAttribute("data-day"), button.getAttribute("data-period"));
+    }
+    if (action === "timetable-delete") return deleteTimetableSlot(id);
+  }
+
+  function studentFormBody(form) {
+    var data = adminFormData(form);
+    var body = {
+      first_name: data.first_name,
+      last_name: data.last_name,
+      class_id: data.class_id,
+      date_of_birth: data.date_of_birth || null,
+      gender: data.gender || null,
+      house: data.house || null,
+      status: data.status,
+      admitted_on: data.admitted_on || null
+    };
+    if (data.admission_no) body.admission_no = data.admission_no;
+    return body;
+  }
+
+  async function submitAdminForm(form) {
+    var kind = form.getAttribute("data-admin-form");
+    var button = form.querySelector('button[type="submit"]');
+    var data = adminFormData(form);
+
+    setButtonBusy(button, true);
+    try {
+      if (kind === "student-create" || kind === "student-edit") {
+        var studentBody = studentFormBody(form);
+        if (kind === "student-create") {
+          await API.post("/admin/students", studentBody);
+          toast("Student record created.");
+        } else {
+          await API.patch("/admin/students/" + encodeURIComponent(data.id), studentBody);
+          toast("Student record updated.");
+        }
+        await reloadAdminStudents();
+      } else if (kind === "announcement-create" || kind === "announcement-edit") {
+        var audiences = [];
+        form.querySelectorAll('input[name="audiences"]:checked').forEach(function (box) {
+          audiences.push(box.value);
+        });
+        var announcementBody = {
+          title: data.title,
+          body: data.body,
+          category: data.category,
+          audiences: audiences,
+          status: data.status,
+          is_pinned: !!(form.querySelector('[name="is_pinned"]') && form.querySelector('[name="is_pinned"]').checked)
+        };
+        if (kind === "announcement-create") {
+          await API.post("/admin/announcements", announcementBody);
+          toast("Announcement saved.");
+        } else {
+          await API.patch("/admin/announcements/" + encodeURIComponent(data.id), announcementBody);
+          toast("Announcement updated.");
+        }
+        await reloadAdminAnnouncements();
+      } else if (kind === "admission-edit") {
+        var admission = await API.patch("/admin/admissions/" + encodeURIComponent(data.id), {
+          status: data.status,
+          notes: data.notes || null
+        });
+        var freshAdmission = admission && admission.data ? admission.data : null;
+        if (freshAdmission) {
+          DATA.adminAdmissions = DATA.adminAdmissions.map(function (row) {
+            return row.id === freshAdmission.id ? freshAdmission : row;
+          });
+          ADMIN.admissions = DATA.adminAdmissions;
+        }
+        refreshAdminBadges();
+        toast("Admission updated.");
+      } else if (kind === "invoice-create") {
+        await API.post("/admin/invoices", {
+          student_id: data.student_id,
+          term_id: data.term_id || null,
+          description: data.description,
+          amount: data.amount,
+          issued_on: data.issued_on,
+          due_on: data.due_on
+        });
+        await reloadAdminFinance();
+        toast("Fee invoice created.");
+      } else if (kind === "payment-create") {
+        await API.post("/admin/payments", {
+          invoice_id: data.invoice_id,
+          amount: data.amount,
+          method: data.method,
+          paid_on: data.paid_on,
+          reference: data.reference || null,
+          note: data.note || null
+        });
+        await reloadAdminFinance();
+        toast("Payment recorded.");
+      } else if (kind === "timetable-add") {
+        await API.post("/admin/timetable", {
+          class_id: data.class_id,
+          term_id: data.term_id,
+          subject_id: data.subject_id,
+          teacher_id: data.teacher_id || null,
+          day_of_week: Number(data.day_of_week),
+          period_no: Number(data.period_no),
+          room: data.room
+        });
+        toast("Timetable slot added.");
+        await loadAdminTimetable(true);
+      } else if (kind === "message-edit") {
+        var updated = await API.patch("/admin/messages/" + encodeURIComponent(data.id), { status: data.status });
+        var freshMessage = updated && updated.data ? updated.data : null;
+        if (freshMessage) {
+          DATA.adminMessages = DATA.adminMessages.map(function (row) {
+            return row.id === freshMessage.id ? freshMessage : row;
+          });
+          ADMIN.messages = DATA.adminMessages;
+        }
+        refreshAdminBadges();
+        toast("Message status updated.");
+      } else {
+        throw new Error("Unknown admin form.");
+      }
+
+      closeAdminDialog();
+      renderView();
+      icons();
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      setFormMessage(form, API.message(error), "err");
+      markFormFields(form, error && error.fields);
+      setButtonBusy(button, false);
+    }
+  }
+
   function adminStudentsView() {
     var rows = ADMIN.students.map(function (student) {
       var classroom = student.class || {};
@@ -2803,7 +3173,8 @@
         esc(classroom.name || "\u2014"),
         esc(student.level || classroom.level_label || "\u2014"),
         esc(account.email || "No portal account"),
-        statusPill(statusLabel(student.status), student.status === "active" ? "ok" : "info")
+        statusPill(statusLabel(student.status), student.status === "active" ? "ok" : "info"),
+        '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="student-edit" data-id="' + esc(student.id) + '">Edit</button>'
       ];
     });
 
@@ -2811,7 +3182,8 @@
       eyebrow: "Administration",
       title: "Students",
       lead: "The live student register for " + esc(SCHOOL.session || "the current session") + ".",
-      actions: statusPill(ADMIN.students.length + " records", "info")
+      actions: '<button class="btn btn--gold" type="button" data-admin-action="student-create"><i data-lucide="user-plus"></i> Add student</button>' +
+        statusPill(ADMIN.students.length + " records", "info")
     }) +
     statGrid([
       stat({ icon: "users", label: "Students", value: ADMIN.students.length, meta: "All records" }),
@@ -2823,9 +3195,52 @@
       title: "Student register",
       sub: "Name, class, level and portal account",
       body: rows.length
-        ? table([{ label: "Student" }, { label: "Class" }, { label: "Level" }, { label: "Portal email" }, { label: "Status" }], rows, "Student register")
+        ? table([{ label: "Student" }, { label: "Class" }, { label: "Level" }, { label: "Portal email" }, { label: "Status" }, { label: "Action", align: "right" }], rows, "Student register")
         : emptyState("users", "No student records", "Student records will appear here once they are enrolled.")
     });
+  }
+
+  function openStudentDialog(student) {
+    if (!DATA.classes.length) {
+      toast("Create a class before adding students.");
+      return;
+    }
+    var editing = !!student;
+    var currentClassId = student && student.class ? student.class.id : DATA.classes[0].id;
+    var statuses = [
+      { value: "active", label: "Active" },
+      { value: "graduated", label: "Graduated" },
+      { value: "withdrawn", label: "Withdrawn" }
+    ];
+    var genders = [
+      { value: "", label: "Not specified" },
+      { value: "male", label: "Male" },
+      { value: "female", label: "Female" }
+    ];
+    var houses = [
+      { value: "", label: "Not assigned" },
+      { value: "Green", label: "Green" },
+      { value: "Gold", label: "Gold" },
+      { value: "Blue", label: "Blue" },
+      { value: "Red", label: "Red" }
+    ];
+
+    var body = adminForm(
+      editing ? "student-edit" : "student-create",
+      (editing ? adminInput("id", "hidden", student.id) : "") +
+        adminField("First name", adminInput("first_name", "text", editing ? student.first_name : "", 'maxlength="80" required')) +
+        adminField("Last name", adminInput("last_name", "text", editing ? student.last_name : "", 'maxlength="80" required')) +
+        adminField("Admission number", adminInput("admission_no", "text", editing ? student.admission_no : "", 'maxlength="30" placeholder="Leave blank to generate"')) +
+        adminField("Class", adminSelect("class_id", classOptions(), currentClassId, "required")) +
+        adminField("Date of birth", adminInput("date_of_birth", "date", editing ? student.date_of_birth || "" : "")) +
+        adminField("Gender", adminSelect("gender", genders, editing ? student.gender || "" : "")) +
+        adminField("House", adminSelect("house", houses, editing ? student.house || "" : "")) +
+        adminField("Status", adminSelect("status", statuses, editing ? student.status : "active")) +
+        adminField("Admitted on", adminInput("admitted_on", "date", editing ? student.admitted_on || "" : todayISO())),
+      editing ? "Save student" : "Add student"
+    );
+
+    openAdminDialog(editing ? "Edit student" : "Add student", "Student register", body);
   }
 
   function adminStaffView() {
@@ -2855,6 +3270,7 @@
   }
 
   function adminAcademicsView() {
+    var timetable = adminTimetableState();
     var classRows = DATA.classes.map(function (classroom) {
       return [
         "<strong>" + esc(classroom.name) + "</strong>",
@@ -2872,11 +3288,28 @@
       ];
     });
 
+    var canBuild = DATA.classes.length > 0 && DATA.terms.length > 0 && DATA.subjects.length > 0;
+    var classSelect = adminSelect("class_id", classOptions(), timetable.classId, 'id="ttClass"' + (canBuild ? " required" : " disabled"));
+    var termSelect = adminSelect("term_id", termOptions(), timetable.termId, 'id="ttTerm"' + (canBuild ? " required" : " disabled"));
+
     return pageHead({
       eyebrow: "Administration",
       title: "Academics",
-      lead: "Classes, form teachers and academic terms.",
-      actions: statusPill(DATA.classes.length + " classes", "info")
+      lead: "Build class timetables and review form teachers and academic terms.",
+      actions: (canBuild
+          ? '<button class="btn btn--gold" type="button" data-admin-action="timetable-add"><i data-lucide="calendar-plus"></i> Add lesson</button>'
+          : "") +
+        statusPill(DATA.classes.length + " classes", "info")
+    }) +
+    panel({
+      title: "Timetable workspace",
+      sub: "Choose a class and term, then add or remove lessons",
+      body: '<form class="admin-toolbar" data-admin-timetable-filter>' +
+          '<div class="field"><label for="ttClass">Class</label>' + classSelect + "</div>" +
+          '<div class="field"><label for="ttTerm">Term</label>' + termSelect + "</div>" +
+          '<div class="field admin-toolbar__action"><button class="btn btn--ghost" type="button" data-tt-refresh><i data-lucide="refresh-cw"></i> Refresh</button></div>' +
+        "</form>" +
+        '<div id="adminTimetableWorkspace" class="admin-timetable-workspace">' + adminTimetableWorkspace() + "</div>"
     }) +
     '<div class="dash-grid dash-grid--2">' +
       panel({
@@ -2894,6 +3327,345 @@
           : emptyState("calendar-days", "No terms", "Academic terms will appear here.")
       }) +
     "</div>";
+  }
+
+  /* ============================================================
+     21b. ADMIN ANNOUNCEMENTS
+     ============================================================ */
+  function audienceLabel(audience) {
+    return {
+      student: "Students",
+      parent: "Parents",
+      teacher: "Teachers",
+      admin: "Administrators"
+    }[audience] || statusLabel(audience);
+  }
+
+  function adminAnnouncementsView() {
+    var list = Array.isArray(DATA.adminAnnouncements) ? DATA.adminAnnouncements : [];
+    var rows = list.map(function (item) {
+      var audienceText = (item.audiences || []).map(audienceLabel).join(", ") || "\u2014";
+      return [
+        '<div class="cell-person"><strong>' + esc(item.title) + "</strong><span>" + esc(item.tag || "General") + "</span></div>",
+        esc(audienceText),
+        statusPill(statusLabel(item.status), item.status === "published" ? "ok" : item.status === "archived" ? "info" : "warn"),
+        esc(item.author || "\u2014"),
+        item.published_at ? longDate(item.published_at) : '<span class="muted">Not published</span>',
+        '<div class="row-actions">' +
+          '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="announcement-edit" data-id="' + esc(item.id) + '">Edit</button>' +
+          (item.status === "archived"
+            ? ""
+            : '<button class="btn btn--ghost btn--sm is-danger" type="button" data-admin-action="announcement-archive" data-id="' + esc(item.id) + '">Archive</button>') +
+        "</div>"
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Announcements",
+      lead: "Publish notices to students, parents, teachers and administrators.",
+      actions: '<button class="btn btn--gold" type="button" data-admin-action="announcement-create"><i data-lucide="megaphone"></i> New announcement</button>' +
+        statusPill(list.length + " notices", "info")
+    }) +
+    panel({
+      title: "All announcements",
+      sub: "Drafts, published notices and archived posts",
+      body: rows.length
+        ? table(
+            [{ label: "Notice" }, { label: "Audience" }, { label: "Status" }, { label: "Author" }, { label: "Published" }, { label: "Action", align: "right" }],
+            rows,
+            "All announcements"
+          )
+        : emptyState("megaphone", "No announcements yet", "Create the first notice for the school community.")
+    });
+  }
+
+  async function archiveAdminAnnouncement(id) {
+    if (!window.confirm("Archive this announcement? It will no longer be visible to families.")) return;
+    try {
+      await API.del("/admin/announcements/" + encodeURIComponent(id));
+      await reloadAdminAnnouncements();
+      renderView();
+      icons();
+      toast("Announcement archived.");
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+    }
+  }
+
+  function openAnnouncementDialog(announcement) {
+    var editing = !!announcement;
+    var statuses = editing
+      ? [{ value: "draft", label: "Draft" }, { value: "published", label: "Published" }, { value: "archived", label: "Archived" }]
+      : [{ value: "draft", label: "Draft" }, { value: "published", label: "Publish now" }];
+    var selectedAudiences = announcement && Array.isArray(announcement.audiences) ? announcement.audiences : ["student", "parent"];
+    var audienceChecks = ["student", "parent", "teacher", "admin"].map(function (audience) {
+      return '<label class="check"><input type="checkbox" name="audiences" value="' + audience + '"' +
+        (selectedAudiences.indexOf(audience) !== -1 ? " checked" : "") + "> " + esc(audienceLabel(audience)) + "</label>";
+    }).join("");
+
+    var body = adminForm(
+      editing ? "announcement-edit" : "announcement-create",
+      (editing ? adminInput("id", "hidden", announcement.id) : "") +
+        adminField("Title", adminInput("title", "text", editing ? announcement.title : "", 'maxlength="160" required'), true) +
+        adminField("Category", adminInput("category", "text", editing ? announcement.tag : "School", 'maxlength="30" list="announcementCategories" required'), true) +
+        '<datalist id="announcementCategories"><option value="School"><option value="Academics"><option value="Events"><option value="Admissions"><option value="Staff"><option value="Welfare"></datalist>' +
+        adminField("Message", adminTextarea("body", editing ? announcement.body : "", 'rows="6" maxlength="5000" required'), true) +
+        '<fieldset class="field full admin-fieldset"><legend>Audience</legend><div class="check-grid">' + audienceChecks + "</div></fieldset>" +
+        adminField("Status", adminSelect("status", statuses, editing ? announcement.status : "draft")) +
+        adminField("Pin to top", '<label class="check"><input type="checkbox" name="is_pinned"' +
+          (editing && announcement.pinned ? " checked" : "") + "> Show this notice above others</label>"),
+      editing ? "Save announcement" : "Create announcement"
+    );
+
+    openAdminDialog(editing ? "Edit announcement" : "New announcement", "School community", body);
+  }
+
+  /* ============================================================
+     21c. ADMIN MESSAGES
+     ============================================================ */
+  function messageTone(status) {
+    return {
+      new: "gold",
+      in_progress: "warn",
+      resolved: "ok",
+      archived: "info"
+    }[status] || "info";
+  }
+
+  function adminMessagesView() {
+    var list = Array.isArray(ADMIN.messages) ? ADMIN.messages : [];
+    var counts = { new: 0, in_progress: 0, resolved: 0, archived: 0 };
+    list.forEach(function (row) { counts[row.status] = (counts[row.status] || 0) + 1; });
+
+    var rows = list.map(function (row) {
+      var excerpt = String(row.message || "");
+      if (excerpt.length > 120) excerpt = excerpt.slice(0, 117) + "\u2026";
+      return [
+        '<div class="cell-person"><strong>' + esc(row.name) + "</strong><span>" + esc(row.email) + (row.phone ? " \u00B7 " + esc(row.phone) : "") + "</span></div>",
+        '<div class="cell-person"><strong>' + esc(row.subject) + "</strong><span>" + esc(excerpt) + "</span></div>",
+        statusPill(row.status_label || statusLabel(row.status), messageTone(row.status)),
+        longDate(row.created_at),
+        '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="message-edit" data-id="' + esc(row.id) + '">Manage</button>'
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Messages",
+      lead: "Enquiries submitted through the public contact form.",
+      actions: statusPill(counts.new + " new", counts.new ? "gold" : "info")
+    }) +
+    statGrid([
+      stat({ icon: "mail", label: "New messages", value: counts.new, meta: "Awaiting first response", alert: counts.new > 0 }),
+      stat({ icon: "message-circle", label: "In progress", value: counts.in_progress, meta: "Being handled" }),
+      stat({ icon: "check-circle-2", label: "Resolved", value: counts.resolved, meta: "Closed successfully" }),
+      stat({ icon: "archive", label: "Archived", value: counts.archived, meta: "Kept for records" })
+    ]) +
+    panel({
+      title: "Contact inbox",
+      sub: list.length + " message" + (list.length === 1 ? "" : "s"),
+      body: rows.length
+        ? table(
+            [{ label: "Sender" }, { label: "Message" }, { label: "Status" }, { label: "Received" }, { label: "Action", align: "right" }],
+            rows,
+            "Contact messages"
+          )
+        : emptyState("mail", "No messages yet", "Enquiries from the public contact form will appear here.")
+    });
+  }
+
+  function openMessageDialog(message) {
+    if (!message) return;
+    var statuses = [
+      { value: "new", label: "New" },
+      { value: "in_progress", label: "In progress" },
+      { value: "resolved", label: "Resolved" },
+      { value: "archived", label: "Archived" }
+    ];
+    var body =
+      '<div class="admin-message">' +
+        '<dl class="admin-message__meta">' +
+          "<div><dt>From</dt><dd>" + esc(message.name) + "</dd></div>" +
+          "<div><dt>Email</dt><dd><a href=\"mailto:" + esc(message.email) + "\">" + esc(message.email) + "</a></dd></div>" +
+          "<div><dt>Phone</dt><dd>" + esc(message.phone || "\u2014") + "</dd></div>" +
+          "<div><dt>Received</dt><dd>" + longDate(message.created_at) + "</dd></div>" +
+        "</dl>" +
+        "<h3>" + esc(message.subject) + "</h3>" +
+        '<p class="admin-message__body">' + esc(message.message) + "</p>" +
+      "</div>" +
+      adminForm(
+        "message-edit",
+        adminInput("id", "hidden", message.id) +
+          adminField("Status", adminSelect("status", statuses, message.status)),
+        "Update message"
+      );
+
+    openAdminDialog("Contact message", "Message inbox", body);
+  }
+
+  /* ============================================================
+     21d. ADMIN TIMETABLE BUILDER
+     ============================================================ */
+  function adminTimetableState() {
+    if (!state.adminTimetable) {
+      var currentTerm = DATA.terms.filter(function (term) { return term.is_current; })[0] || DATA.terms[0];
+      state.adminTimetable = {
+        classId: DATA.classes[0] ? DATA.classes[0].id : "",
+        termId: currentTerm ? currentTerm.id : "",
+        data: null,
+        loadedKey: "",
+        loading: false,
+        error: null
+      };
+    }
+    return state.adminTimetable;
+  }
+
+  function adminTimetableWorkspace() {
+    var timetable = adminTimetableState();
+    if (!DATA.classes.length || !DATA.terms.length || !DATA.subjects.length) {
+      return emptyState("calendar-days", "Set up classes, terms and subjects first", "Add at least one class, one academic term and one subject before building a timetable.");
+    }
+    if (timetable.error) {
+      return '<div class="empty-state"><span class="empty-state__icon"><i data-lucide="cloud-off"></i></span>' +
+        "<h3>The timetable could not be loaded</h3><p>" + esc(timetable.error) + "</p>" +
+        '<div class="empty-state__actions"><button class="btn btn--primary" type="button" data-tt-refresh><i data-lucide="refresh-cw"></i> Try again</button></div></div>';
+    }
+    if (timetable.loading || !timetable.data || timetable.loadedKey !== timetable.classId + "|" + timetable.termId) {
+      return '<div class="view-loading"><span class="loading-dot" aria-hidden="true"></span> Loading timetable\u2026</div>';
+    }
+
+    var days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    var payload = timetable.data.timetable || {};
+    var periods = Array.isArray(payload.periods) ? payload.periods : [];
+    var head = '<th scope="col">Period</th>' + days.map(function (day) {
+      return '<th scope="col">' + esc(day) + "</th>";
+    }).join("");
+
+    var body = periods.map(function (period) {
+      var cells = days.map(function (day) {
+        var dayIndex = dayNames.indexOf(day);
+        var slots = Array.isArray(payload.days && payload.days[day]) ? payload.days[day] : [];
+        var slot = slots[period.period - 1] || null;
+        if (!slot) {
+          return '<td><button class="tt-add" type="button" data-admin-action="timetable-add" data-day="' + (dayIndex + 1) +
+            '" data-period="' + esc(period.period) + '" aria-label="Add lesson for ' + esc(day) + " " + esc(period.label) + '">' +
+            '<i data-lucide="plus"></i><span>Add</span></button></td>';
+        }
+        return "<td>" +
+          '<div class="tt__cell"><strong>' + esc(slot.subject ? slot.subject.name : "Lesson") + "</strong>" +
+            "<span>" + esc(slot.teacher || "Unassigned") + "</span>" +
+            "<small>" + esc(slot.room || "") + "</small>" +
+            '<button class="tt-remove" type="button" data-admin-action="timetable-delete" data-id="' + esc(slot.id) +
+              '" aria-label="Remove ' + esc(slot.subject ? slot.subject.name : "lesson") + " on " + esc(day) + '"><i data-lucide="x"></i></button>' +
+          "</div></td>";
+      }).join("");
+      return '<tr><th scope="row"><span class="tt__period">' + esc(period.label) + "</span>" +
+        '<span class="tt__time">' + esc(period.time || "") + "</span></th>" + cells + "</tr>";
+    }).join("");
+
+    if (!periods.length) {
+      return emptyState("calendar-days", "No periods defined", "The timetable periods could not be loaded.");
+    }
+
+    return '<div class="table-wrap" tabindex="0" role="region" aria-label="Timetable builder">' +
+      '<table class="data-table timetable timetable--admin">' +
+        "<thead><tr>" + head + "</tr></thead><tbody>" + body + "</tbody></table></div>" +
+      '<p class="small muted mt-2">Each class has six periods a day, Monday to Friday. Click <strong>Add</strong> in an empty period to schedule a lesson, or the close icon to remove one.</p>';
+  }
+
+  function renderAdminTimetableWorkspace() {
+    var workspace = document.getElementById("adminTimetableWorkspace");
+    if (!workspace) return;
+    workspace.innerHTML = adminTimetableWorkspace();
+    icons();
+  }
+
+  async function loadAdminTimetable(force) {
+    var timetable = adminTimetableState();
+    if (!timetable.classId || !timetable.termId) {
+      renderAdminTimetableWorkspace();
+      return;
+    }
+    var key = timetable.classId + "|" + timetable.termId;
+    if (!force && timetable.data && timetable.loadedKey === key) return;
+    if (timetable.loading) return;
+
+    timetable.loading = true;
+    timetable.error = null;
+    renderAdminTimetableWorkspace();
+
+    try {
+      var payload = await API.get("/admin/timetable?class_id=" + encodeURIComponent(timetable.classId) +
+        "&term_id=" + encodeURIComponent(timetable.termId));
+      timetable.data = payload && payload.data ? payload.data : null;
+      timetable.loadedKey = key;
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      timetable.error = API.message(error);
+    } finally {
+      timetable.loading = false;
+      renderAdminTimetableWorkspace();
+    }
+  }
+
+  function openTimetableDialog(day, period) {
+    var timetable = adminTimetableState();
+    if (!timetable.classId || !timetable.termId) {
+      toast("Choose a class and term first.");
+      return;
+    }
+    var days = [
+      { value: 1, label: "Monday" },
+      { value: 2, label: "Tuesday" },
+      { value: 3, label: "Wednesday" },
+      { value: 4, label: "Thursday" },
+      { value: 5, label: "Friday" }
+    ];
+    var periods = [1, 2, 3, 4, 5, 6].map(function (number) {
+      return { value: number, label: "Period " + number };
+    });
+    var selectedDay = day ? Number(day) : 1;
+    var selectedPeriod = period ? Number(period) : 1;
+    if (timetable.data && timetable.data.timetable) {
+      var occupied = timetable.data.timetable.slots || [];
+      var free = periods.filter(function (candidate) {
+        return !occupied.some(function (slot) {
+          return slot.day === dayNames[selectedDay - 1] && Number(slot.period) === Number(candidate.value);
+        });
+      });
+      if (free.length && free.every(function (candidate) { return Number(candidate.value) !== selectedPeriod; })) {
+        selectedPeriod = Number(free[0].value);
+      }
+    }
+
+    var body = adminForm(
+      "timetable-add",
+      adminField("Class", adminSelect("class_id", classOptions(), timetable.classId, "required")) +
+        adminField("Term", adminSelect("term_id", termOptions(), timetable.termId, "required")) +
+        adminField("Subject", adminSelect("subject_id", subjectOptions(), "", "required")) +
+        adminField("Teacher", adminSelect("teacher_id", teacherOptions())) +
+        adminField("Day", adminSelect("day_of_week", days, selectedDay, "required")) +
+        adminField("Period", adminSelect("period_no", periods, selectedPeriod, "required")) +
+        adminField("Room", adminInput("room", "text", "", 'maxlength="60" placeholder="e.g. Room 4" required'), true),
+      "Add lesson"
+    );
+
+    openAdminDialog("Add timetable lesson", "Timetable builder", body);
+  }
+
+  async function deleteTimetableSlot(id) {
+    if (!window.confirm("Remove this lesson from the timetable?")) return;
+    try {
+      await API.del("/admin/timetable/" + encodeURIComponent(id));
+      toast("Timetable lesson removed.");
+      await loadAdminTimetable(true);
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+    }
   }
 
   function admissionTone(status) {
@@ -2917,7 +3689,8 @@
         esc(row.level_label || row.level || "\u2014"),
         statusPill(row.status_label || statusLabel(row.status), admissionTone(row.status)),
         longDate(row.created_at),
-        esc(row.notes || "\u2014")
+        esc(row.notes || "\u2014"),
+        '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="admission-edit" data-id="' + esc(row.id) + '">Manage</button>'
       ];
     });
 
@@ -2938,12 +3711,46 @@
       sub: "Newest applications first",
       body: rows.length
         ? table(
-            [{ label: "Applicant" }, { label: "Guardian" }, { label: "Level" }, { label: "Status" }, { label: "Received" }, { label: "Notes" }],
+            [{ label: "Applicant" }, { label: "Guardian" }, { label: "Level" }, { label: "Status" }, { label: "Received" }, { label: "Notes" }, { label: "Action", align: "right" }],
             rows,
             "Admissions applications"
           )
         : emptyState("user-plus", "No applications", "New admission enquiries will appear here.")
     });
+  }
+
+  function openAdmissionDialog(admission) {
+    if (!admission) return;
+    var statuses = [
+      { value: "new", label: "New" },
+      { value: "assessment", label: "Assessment" },
+      { value: "offer", label: "Offer issued" },
+      { value: "enrolled", label: "Enrolled" },
+      { value: "declined", label: "Declined" }
+    ];
+    var facts = [
+      ["Guardian", admission.guardian || "\u2014"],
+      ["Email", admission.email || "\u2014"],
+      ["Phone", admission.phone || "\u2014"],
+      ["Level", admission.level_label || admission.level || "\u2014"],
+      ["Preferred class", admission.class_label || "\u2014"],
+      ["Date of birth", admission.date_of_birth ? longDate(admission.date_of_birth) : "\u2014"],
+      ["Gender", admission.gender ? statusLabel(admission.gender) : "\u2014"],
+      ["Previous school", admission.previous_school || "\u2014"]
+    ];
+    var body =
+      '<div class="admin-facts">' + facts.map(function (fact) {
+        return '<div><span>' + esc(fact[0]) + "</span><strong>" + esc(fact[1]) + "</strong></div>";
+      }).join("") + "</div>" +
+      adminForm(
+        "admission-edit",
+        adminInput("id", "hidden", admission.id) +
+          adminField("Status", adminSelect("status", statuses, admission.status)) +
+          adminField("Notes", adminTextarea("notes", admission.notes || "", 'rows="5" maxlength="4000"'), true),
+        "Save admission"
+      );
+
+    openAdminDialog(admission.applicant, "Admission application", body);
   }
 
   function financeTone(status) {
@@ -2970,7 +3777,10 @@
         money(invoice.paid),
         money(invoice.balance),
         statusPill(invoice.status_label || statusLabel(invoice.status), financeTone(invoice.status)),
-        longDate(invoice.due_on)
+        longDate(invoice.due_on),
+        invoice.balance > 0
+          ? '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="payment-create" data-invoice-id="' + esc(invoice.id) + '">Record payment</button>'
+          : '<span class="muted">Settled</span>'
       ];
     });
 
@@ -2987,7 +3797,9 @@
       eyebrow: "Administration",
       title: "Fees & finance",
       lead: "Term billing, collections and recent receipts.",
-      actions: '<span class="term-chip"><i data-lucide="calendar-days"></i>' + esc(SCHOOL.label || SCHOOL.term) + "</span>"
+      actions: '<button class="btn btn--gold" type="button" data-admin-action="invoice-create"><i data-lucide="file-plus"></i> New invoice</button>' +
+        '<button class="btn btn--ghost" type="button" data-admin-action="payment-create"><i data-lucide="receipt"></i> Record payment</button>' +
+        '<span class="term-chip"><i data-lucide="calendar-days"></i>' + esc(SCHOOL.label || SCHOOL.term) + "</span>"
     }) +
     statGrid([
       stat({ icon: "wallet", label: "Billed", value: compactMoney(summary.billed), meta: "Invoices this term" }),
@@ -3002,7 +3814,7 @@
         : invoices.length + " invoices",
       body: invoiceRows.length
         ? table(
-            [{ label: "Student" }, { label: "Item" }, { label: "Amount", align: "right" }, { label: "Paid", align: "right" }, { label: "Balance", align: "right" }, { label: "Status" }, { label: "Due" }],
+            [{ label: "Student" }, { label: "Item" }, { label: "Amount", align: "right" }, { label: "Paid", align: "right" }, { label: "Balance", align: "right" }, { label: "Status" }, { label: "Due" }, { label: "Action", align: "right" }],
             invoiceRows,
             "Fee invoices"
           )
@@ -3015,6 +3827,67 @@
         ? table([{ label: "Student" }, { label: "Amount", align: "right" }, { label: "Method" }, { label: "Date" }], paymentRows, "Recent payments")
         : emptyState("receipt", "No payments", "Receipted payments will appear here.")
     });
+  }
+
+  function openInvoiceDialog() {
+    if (!ADMIN.students.length) {
+      toast("Add a student before raising an invoice.");
+      return;
+    }
+    var students = ADMIN.students.map(function (student) {
+      return { value: student.id, label: student.name + " \u00B7 " + (student.class ? student.class.name : "No class") };
+    });
+    var currentTerm = DATA.terms.filter(function (term) { return term.is_current; })[0];
+    var dueOn = currentTerm && currentTerm.ends_on ? currentTerm.ends_on : "";
+
+    var body = adminForm(
+      "invoice-create",
+      adminField("Student", adminSelect("student_id", students, students[0].value, "required")) +
+        adminField("Term", adminSelect("term_id", termOptions(), currentTerm ? currentTerm.id : "", "required")) +
+        adminField("Description", adminInput("description", "text", "", 'maxlength="160" placeholder="e.g. First Term tuition" required'), true) +
+        adminField("Amount", adminInput("amount", "number", "", 'min="0.01" step="0.01" required')) +
+        adminField("Issued on", adminInput("issued_on", "date", todayISO(), "required")) +
+        adminField("Due on", adminInput("due_on", "date", dueOn, "required"), true),
+      "Create invoice"
+    );
+
+    openAdminDialog("New fee invoice", "Fees & finance", body);
+  }
+
+  function openPaymentDialog(invoiceId) {
+    var finance = ADMIN.finance || {};
+    var invoices = Array.isArray(finance.invoices) ? finance.invoices : [];
+    var outstanding = invoices.filter(function (invoice) { return invoice.balance > 0; });
+    if (!outstanding.length) {
+      toast("There are no outstanding invoices to record a payment against.");
+      return;
+    }
+    var options = outstanding.map(function (invoice) {
+      return {
+        value: invoice.id,
+        label: (invoice.student ? invoice.student.name : "Student") + " \u00B7 " + invoice.ref + " \u00B7 " + money(invoice.balance) + " balance"
+      };
+    });
+    var selected = invoiceId && outstanding.some(function (invoice) { return invoice.id === invoiceId; })
+      ? invoiceId
+      : outstanding[0].id;
+    var selectedInvoice = outstanding.filter(function (invoice) { return invoice.id === selected; })[0];
+    var methods = ["Cash", "Bank transfer", "POS", "Cheque", "Online"].map(function (method) {
+      return { value: method, label: method };
+    });
+
+    var body = adminForm(
+      "payment-create",
+      adminField("Invoice", adminSelect("invoice_id", options, selected, "required data-payment-invoice")) +
+        adminField("Amount", adminInput("amount", "number", selectedInvoice ? selectedInvoice.balance : "", 'min="0.01" step="0.01" required')) +
+        adminField("Method", adminSelect("method", methods, "Cash", "required")) +
+        adminField("Paid on", adminInput("paid_on", "date", todayISO(), "required")) +
+        adminField("Reference", adminInput("reference", "text", "", 'maxlength="40" placeholder="Bank or receipt reference"')) +
+        adminField("Note", adminInput("note", "text", "", 'maxlength="190" placeholder="Optional note"'), true),
+      "Record payment"
+    );
+
+    openAdminDialog("Record fee payment", "Fees & finance", body);
   }
 
   function adminResultsView() {

@@ -164,7 +164,7 @@
             <div class="section-head reveal">
               <span class="eyebrow">Online Application</span>
               <h2 class="title">Apply for admission</h2>
-              <p class="lead">Fill in the short form and our admission team will contact you. This is a frontend demo — full online submission arrives with the backend.</p>
+              <p class="lead">Fill in the short form and our admission team will contact you. Your application goes straight to the school office.</p>
             </div>
             <ul class="check-list reveal" data-delay="100">
               <li><i data-lucide="clock"></i><span>Completing this form takes about 2 minutes.</span></li>
@@ -174,64 +174,68 @@
           </div>
 
           <div class="form-card reveal" data-delay="100">
-            <form data-form novalidate>
+            <form data-admission-form novalidate>
+              <div class="hp-field" aria-hidden="true">
+                <label for="childWebsite">Leave this field empty</label>
+                <input id="childWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+              </div>
               <div class="form-grid">
                 <div class="field">
                   <label for="childName">Child's Full Name <span class="req">*</span></label>
-                  <input id="childName" type="text" placeholder="e.g. Aisha Omowunmi Ibrahim" required>
+                  <input id="childName" name="applicant_name" type="text" placeholder="e.g. Aisha Omowunmi Ibrahim" maxlength="120" autocomplete="name" required>
                 </div>
                 <div class="field">
                   <label for="childDob">Date of Birth <span class="req">*</span></label>
-                  <input id="childDob" type="date" required>
+                  <input id="childDob" name="date_of_birth" type="date" required>
                 </div>
                 <div class="field">
                   <label for="childGender">Gender <span class="req">*</span></label>
-                  <select id="childGender" required>
+                  <select id="childGender" name="gender" required>
                     <option value="" disabled selected>Select gender</option>
-                    <option>Male</option>
-                    <option>Female</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
                   </select>
                 </div>
                 <div class="field">
                   <label for="childLevel">Level Applying For <span class="req">*</span></label>
-                  <select id="childLevel" required>
+                  <select id="childLevel" name="level" required>
                     <option value="" disabled selected>Select level</option>
-                    <option>Nursery 1</option>
-                    <option>Nursery 2</option>
-                    <option>Nursery 3</option>
-                    <option>Primary 1</option>
-                    <option>Primary 2</option>
-                    <option>Primary 3</option>
-                    <option>Primary 4</option>
-                    <option>Primary 5</option>
-                    <option>Primary 6</option>
-                    <option>JSS 1</option>
-                    <option>JSS 2</option>
-                    <option>JSS 3</option>
-                    <option>SS 1</option>
-                    <option>SS 2</option>
-                    <option>SS 3</option>
+                    <option value="Nursery 1">Nursery 1</option>
+                    <option value="Nursery 2">Nursery 2</option>
+                    <option value="Nursery 3">Nursery 3</option>
+                    <option value="Primary 1">Primary 1</option>
+                    <option value="Primary 2">Primary 2</option>
+                    <option value="Primary 3">Primary 3</option>
+                    <option value="Primary 4">Primary 4</option>
+                    <option value="Primary 5">Primary 5</option>
+                    <option value="Primary 6">Primary 6</option>
+                    <option value="JSS 1">JSS 1</option>
+                    <option value="JSS 2">JSS 2</option>
+                    <option value="JSS 3">JSS 3</option>
+                    <option value="SS 1">SS 1</option>
+                    <option value="SS 2">SS 2</option>
+                    <option value="SS 3">SS 3</option>
                   </select>
                 </div>
                 <div class="field">
                   <label for="prevSchool">Previous School (if any)</label>
-                  <input id="prevSchool" type="text" placeholder="e.g. ABC Primary School">
+                  <input id="prevSchool" name="previous_school" type="text" placeholder="e.g. ABC Primary School" maxlength="160">
                 </div>
                 <div class="field">
                   <label for="parentName">Parent / Guardian Name <span class="req">*</span></label>
-                  <input id="parentName" type="text" placeholder="Full name" required>
+                  <input id="parentName" name="guardian_name" type="text" placeholder="Full name" maxlength="120" required>
                 </div>
                 <div class="field">
                   <label for="parentPhone">Phone Number <span class="req">*</span></label>
-                  <input id="parentPhone" type="tel" placeholder="e.g. 0803 000 0000" required>
+                  <input id="parentPhone" name="phone" type="tel" placeholder="e.g. 0803 000 0000" maxlength="30" autocomplete="tel" required>
                 </div>
                 <div class="field full">
                   <label for="parentEmail">Email Address</label>
-                  <input id="parentEmail" type="email" placeholder="you@example.com">
+                  <input id="parentEmail" name="email" type="email" placeholder="you@example.com" maxlength="190" autocomplete="email">
                 </div>
                 <div class="field full">
                   <label for="applyNote">Anything we should know?</label>
-                  <textarea id="applyNote" placeholder="Optional — e.g. special needs, transfer request, questions..."></textarea>
+                  <textarea id="applyNote" name="notes" placeholder="Optional — e.g. special needs, transfer request, questions..." maxlength="2000"></textarea>
                 </div>
               </div>
               <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="send"></i> Submit Application</button>
@@ -333,6 +337,7 @@
   <button class="to-top" id="toTop" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/main.js?v=3"></script>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/main.js?v=5"></script>
 </body>
 </html>
