@@ -71,4 +71,11 @@ SESSION_SECURE=true
 SESSION_SAMESITE=None
 ```
 
+Configure outbound email in `backend/.env` (`MAIL_DRIVER`, `MAIL_HOST`,
+`MAIL_FROM_ADDRESS`, `MAIL_ADMISSIONS_TO`, `MAIL_CONTACT_TO`) so the school
+office is notified of website submissions. Set `PORTAL_URL` to the deployed
+frontend root so those emails link to the dashboard. Verify delivery with a real
+submission after deployment; mail failures are logged but never block the
+visitor's submission.
+
 Keep `backend/.env` out of Git and never serve it from a static host.

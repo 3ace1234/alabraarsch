@@ -238,6 +238,33 @@ submissions, throttled to four submissions per IP per minute, and record every
 write in `audit_logs`. Successful submissions return `201` with a short
 `reference` value for the family to quote.
 
+### Email notifications
+
+Each admission application and contact message also emails the school office.
+Notifications are best-effort: if mail delivery fails the submission is still
+stored and the visitor still receives `201`; the failure is written to
+`app.log`. Configure the transport in `.env`:
+
+```dotenv
+MAIL_DRIVER=smtp          # smtp, mail, log or none
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls       # tls (STARTTLS), ssl (implicit) or none
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM_ADDRESS=no-reply@alfalaah.edu.ng
+MAIL_FROM_NAME="Al-Falaah School"
+MAIL_ADMISSIONS_TO=admissions@alfalaah.edu.ng
+MAIL_CONTACT_TO=info@alfalaah.edu.ng
+MAIL_INTAKE_TO=           # fallback for both forms
+MAIL_TIMEOUT=10
+```
+
+Set `MAIL_DRIVER=log` during development to write rendered messages to
+`backend/storage/logs/mail.log` without sending anything. The notifier uses the
+guardian's or sender's email as `Reply-To` when one was provided, so the office
+can reply directly.
+
 ### Shared portal data
 
 | Method | Path | Access | Purpose |
@@ -338,6 +365,9 @@ find backend -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 php -l
 
 # Read-only end-to-end checks (requires demo data and a running API)
 php backend/tests/api_smoke.php
+
+# Render mail messages through the log driver without sending
+php backend/tests/mailer_test.php
 ```
 
 The smoke test signs in as each role, checks dashboards and role restrictions,

@@ -12,6 +12,7 @@ use AlFalaah\Core\Response;
 use AlFalaah\Core\Session;
 use AlFalaah\Core\Uuid;
 use AlFalaah\Core\Validator;
+use AlFalaah\Services\IntakeNotifier;
 
 /**
  * Public website intake: admission enquiries and contact messages.
@@ -71,6 +72,21 @@ final class IntakeController
             'source' => 'website',
         ]);
 
+        IntakeNotifier::admission([
+            'uuid' => $uuid,
+            'applicant_name' => $applicantName,
+            'guardian_name' => $guardianName,
+            'email' => $email,
+            'phone' => $phone,
+            'level' => $level,
+            'class_label' => $classLabel,
+            'date_of_birth' => $dateOfBirth,
+            'gender' => $gender,
+            'previous_school' => $previousSchool,
+            'notes' => $notes,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
         Response::ok([
             'received' => true,
             'reference' => strtoupper(substr($uuid, 0, 8)),
@@ -105,6 +121,16 @@ final class IntakeController
 
         Audit::record('contact.submitted', 'contact_message', $uuid, [
             'subject' => $subject,
+        ]);
+
+        IntakeNotifier::contact([
+            'uuid' => $uuid,
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'subject' => $subject,
+            'message' => $message,
+            'created_at' => date('Y-m-d H:i:s'),
         ]);
 
         Response::ok([
