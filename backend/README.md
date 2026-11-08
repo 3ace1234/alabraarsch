@@ -265,6 +265,28 @@ Set `MAIL_DRIVER=log` during development to write rendered messages to
 guardian's or sender's email as `Reply-To` when one was provided, so the office
 can reply directly.
 
+For Gmail, enable 2-Step Verification, create an **App Password**, and use the
+implicit-TLS port because some networks block STARTTLS on 587:
+
+```dotenv
+MAIL_DRIVER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=465
+MAIL_ENCRYPTION=ssl
+MAIL_USERNAME=your.address@gmail.com
+MAIL_PASSWORD=the-16-character-app-password
+MAIL_FROM_ADDRESS=your.address@gmail.com
+```
+
+Send a verification email before relying on the forms:
+
+```bash
+php backend/scripts/test_mail.php you@example.com
+```
+
+Gmail is fine for testing but has daily sending limits; use a domain mailbox or
+a transactional provider for production.
+
 ### Shared portal data
 
 | Method | Path | Access | Purpose |
@@ -368,6 +390,9 @@ php backend/tests/api_smoke.php
 
 # Render mail messages through the log driver without sending
 php backend/tests/mailer_test.php
+
+# Send a real test email with the configured SMTP settings
+php backend/scripts/test_mail.php you@example.com
 ```
 
 The smoke test signs in as each role, checks dashboards and role restrictions,
