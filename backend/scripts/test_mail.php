@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 
 use AlFalaah\Core\Env;
+use AlFalaah\Core\Logger;
 use AlFalaah\Core\Mailer;
 
 require dirname(__DIR__) . '/src/bootstrap.php';
@@ -79,6 +80,7 @@ try {
     fwrite(STDERR, "No message was sent (transport disabled).\n");
     exit(1);
 } catch (Throwable $exception) {
+    Logger::error('Mail test failed', ['exception' => $exception->getMessage()]);
     fwrite(STDERR, "FAILED: {$exception->getMessage()}\n");
     fwrite(STDERR, "Details were written to backend/storage/logs/app.log\n");
     exit(1);

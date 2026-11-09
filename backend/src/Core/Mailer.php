@@ -120,8 +120,13 @@ final class Mailer
             $username = Env::get('MAIL_USERNAME', '') ?? '';
             if ($username !== '') {
                 self::command($socket, 'AUTH LOGIN', [334]);
-                self::command($socket, base64_encode($username), [334]);
-                self::command($socket, base64_encode(Env::get('MAIL_PASSWORD', '') ?? ''), [235]);
+                self::command($socket, base64_encode($username), [334], 'AUTH username');
+                self::command(
+                    $socket,
+                    base64_encode(Env::get('MAIL_PASSWORD', '') ?? ''),
+                    [235],
+                    'AUTH password'
+                );
             }
 
             self::command($socket, 'MAIL FROM:<' . $message['from'] . '>', [250]);
@@ -285,10 +290,10 @@ final class Mailer
      * @param resource $socket
      * @param array<int, int> $expected
      */
-    private static function command($socket, string $command, array $expected): void
+    private static function command($socket, string $command, array $expected, ?string $context = null): void
     {
         fwrite($socket, $command . "\r\n");
-        self::expect($socket, $expected, $command);
+        self::expect($socket, $expected, $context ?? $command);
     }
 
     /**
