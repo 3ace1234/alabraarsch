@@ -363,6 +363,15 @@ try {
     check(($enrolled['data']['status'] ?? null) === 'enrolled', 'admin: enrollment updates admission status');
     $enrolledStudentId = $enrolled['data']['student']['id'] ?? null;
     check(is_string($enrolledStudentId), 'admin: enrollment links the student record');
+    $portalAccount = $enrolled['data']['portal_account'] ?? null;
+    check(
+        is_array($portalAccount) && !empty($portalAccount['email']),
+        'admin: enrollment creates a portal account'
+    );
+    check(
+        is_array($portalAccount) && !empty($portalAccount['temporary_password']),
+        'admin: temporary password returned once'
+    );
 
     expects(
         $admin->post(
@@ -388,6 +397,28 @@ try {
     }
     check($listed, 'admin: enrolled student appears in the register');
 
+    if (is_array($portalAccount) && !empty($portalAccount['email'])) {
+        $newStudent = signIn(
+            $base,
+            (string) $portalAccount['email'],
+            (string) $portalAccount['temporary_password'],
+            'student'
+        );
+        expects($newStudent->get('/dashboard'), 200, 'new student: can open the dashboard');
+        $changed = expects($newStudent->post('/auth/password', [
+            'current_password' => (string) $portalAccount['temporary_password'],
+            'password' => 'SmokeStudent@2026',
+            'password_confirmation' => 'SmokeStudent@2026',
+        ]), 200, 'new student: changes the temporary password');
+        check(
+            is_string($changed['data']['csrf_token'] ?? null),
+            'new student: CSRF token rotated after password change'
+        );
+        expects($newStudent->post('/auth/logout'), 204, 'new student: logout');
+        $returning = signIn($base, (string) $portalAccount['email'], 'SmokeStudent@2026', 'student');
+        expects($returning->post('/auth/logout'), 204, 'new student: signs in with the new password');
+    }
+
     $validationUuid = Uuid::v4();
     $validationId = Database::insert(
         "INSERT INTO admission_applications
@@ -412,6 +443,10 @@ try {
     Database::execute('DELETE FROM admission_applications WHERE id = ?', [$tempAdmissionId]);
     if (is_string($enrolledStudentId)) {
         Database::execute('DELETE FROM students WHERE uuid = ?', [$enrolledStudentId]);
+    }
+    if (is_array($portalAccount) && !empty($portalAccount['email'])) {
+        Database::execute('DELETE FROM login_attempts WHERE email = ?', [$portalAccount['email']]);
+        Database::execute('DELETE FROM users WHERE email = ?', [$portalAccount['email']]);
     }
 
     $currentTerm = null;

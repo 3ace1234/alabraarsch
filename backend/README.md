@@ -400,8 +400,17 @@ the application, and a new admission number is generated when none is supplied.
 Enrolling an application twice, or editing an application straight to `enrolled`,
 is rejected so the link cannot be bypassed.
 
-Enrollment creates the student record only. Portal sign-in accounts are not
-provisioned by this endpoint.
+By default the endpoint also creates an active student portal account. Set
+`create_account` to `false` to skip it, and pass `account_email` to choose the
+sign-in address. Otherwise an address such as
+`first.last@student.alfalaah.edu.ng` is generated with a numeric suffix when it is
+already taken. The response includes `portal_account.email` and
+`portal_account.temporary_password`; the password is returned only in that
+response and is never stored in plain text or written to the audit log. The
+dashboard shows it once with a copy button so the office can hand it to the
+family. Signed-in users can change their password from the profile menu, which
+calls `POST /auth/password` and keeps the current session while ending others.
+This endpoint does not create guardian (parent) accounts.
 
 ## Results workflow
 

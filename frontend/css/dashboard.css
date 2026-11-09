@@ -390,6 +390,10 @@
   font-size: .84rem; font-weight: 600; color: var(--color-text);
 }
 .menu-link:hover { background: var(--color-soft-green); color: var(--color-primary-dark); }
+.menu-link--button {
+  width: 100%; border: 0; background: none;
+  font-family: inherit; text-align: left; cursor: pointer;
+}
 .menu-link svg { width: 17px; height: 17px; color: var(--color-primary); }
 .menu-link--danger { color: var(--danger); }
 .menu-link--danger svg { color: var(--danger); }
@@ -1335,6 +1339,16 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 .admin-callout .btn { flex-shrink: 0; }
 @media (max-width: 560px) {
   .admin-callout { flex-direction: column; align-items: flex-start; }
+}
+.temp-password {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: .04em;
+}
+.admin-note {
+  margin: 0 0 4px;
+  font-size: .82rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
 }
 .admin-message h3 { font-size: 1rem; margin-bottom: 8px; }
 .admin-message__body {

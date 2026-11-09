@@ -1072,6 +1072,7 @@
       '<div class="popover__list popover__list--menu">' +
         '<div class="menu-link menu-link--static"><i data-lucide="shield-check"></i> ' + esc(cfg.label) + " account</div>" +
         '<div class="menu-sep"></div>' +
+        '<button class="menu-link menu-link--button" type="button" data-change-password><i data-lucide="key-round"></i> Change password</button>' +
         '<a class="menu-link" href="index.html"><i data-lucide="globe"></i> Back to website</a>' +
         '<a class="menu-link menu-link--danger" href="portal.html" data-logout><i data-lucide="log-out"></i> Sign out</a>' +
       "</div>";
@@ -1413,6 +1414,19 @@
     if (event.target.closest("[data-publish-term]")) {
       event.preventDefault();
       publishCurrentTerm(event.target.closest("[data-publish-term]"));
+      return;
+    }
+
+    if (event.target.closest("[data-copy-account]")) {
+      event.preventDefault();
+      copyAccountDetails(event.target.closest("[data-copy-account]"));
+      return;
+    }
+
+    if (event.target.closest("[data-change-password]")) {
+      event.preventDefault();
+      closeAllPopovers();
+      openChangePasswordDialog();
       return;
     }
 
@@ -3098,10 +3112,18 @@
     var kind = form.getAttribute("data-admin-form");
     var button = form.querySelector('button[type="submit"]');
     var data = adminFormData(form);
+    var afterSave = null;
 
     setButtonBusy(button, true);
     try {
-      if (kind === "student-create" || kind === "student-edit") {
+      if (kind === "change-password") {
+        await API.post("/auth/password", {
+          current_password: data.current_password,
+          password: data.password,
+          password_confirmation: data.password_confirmation
+        });
+        toast("Password updated. Use the new password next time you sign in.");
+      } else if (kind === "student-create" || kind === "student-edit") {
         var studentBody = studentFormBody(form);
         if (kind === "student-create") {
           await API.post("/admin/students", studentBody);
@@ -3147,6 +3169,7 @@
         refreshAdminBadges();
         toast("Admission updated.");
       } else if (kind === "admission-enroll") {
+        var accountToggle = form.querySelector('[name="create_account"]');
         var enrolled = await API.post("/admin/admissions/" + encodeURIComponent(data.id) + "/enroll", {
           first_name: data.first_name,
           last_name: data.last_name,
@@ -3155,18 +3178,28 @@
           date_of_birth: data.date_of_birth || null,
           gender: data.gender || null,
           house: data.house || null,
-          admitted_on: data.admitted_on || null
+          admitted_on: data.admitted_on || null,
+          create_account: !!(accountToggle && accountToggle.checked),
+          account_email: data.account_email || null
         });
         var enrolledAdmission = enrolled && enrolled.data ? enrolled.data : null;
+        var portalAccount = enrolledAdmission ? enrolledAdmission.portal_account || null : null;
         if (enrolledAdmission) {
+          var admissionRecord = Object.assign({}, enrolledAdmission);
+          delete admissionRecord.portal_account;
           DATA.adminAdmissions = DATA.adminAdmissions.map(function (row) {
-            return row.id === enrolledAdmission.id ? enrolledAdmission : row;
+            return row.id === admissionRecord.id ? admissionRecord : row;
           });
           ADMIN.admissions = DATA.adminAdmissions;
         }
         await reloadAdminStudents();
         refreshAdminBadges();
         toast("Student enrolled and added to the register.");
+        if (portalAccount) {
+          afterSave = function () {
+            showPortalAccountDialog(portalAccount, data.first_name + " " + data.last_name);
+          };
+        }
       } else if (kind === "invoice-create") {
         await API.post("/admin/invoices", {
           student_id: data.student_id,
@@ -3219,6 +3252,7 @@
       closeAdminDialog();
       renderView();
       icons();
+      if (afterSave) afterSave();
     } catch (error) {
       if (API.isAuthError(error)) return handleAuthFailure();
       setFormMessage(form, API.message(error), "err");
@@ -3849,7 +3883,10 @@
       ["Previous school", admission.previous_school || "\u2014"],
       ["Student record", admission.student
         ? admission.student.name + " (" + admission.student.admission_no + ", " + admission.student.class + ")"
-        : (admission.status === "enrolled" ? "No linked student record" : "Not enrolled yet")]
+        : (admission.status === "enrolled" ? "No linked student record" : "Not enrolled yet")],
+      ["Portal account", admission.student
+        ? (admission.student.account || "No sign-in account")
+        : "\u2014"]
     ];
     var canEnroll = !admission.student && (admission.status === "offer" || admission.status === "enrolled");
     var callout = canEnroll
@@ -3922,11 +3959,76 @@
         adminField("Date of birth", adminInput("date_of_birth", "date", admission.date_of_birth || "")) +
         adminField("Gender", adminSelect("gender", genders, admission.gender || "")) +
         adminField("House", adminSelect("house", houses, "")) +
-        adminField("Admitted on", adminInput("admitted_on", "date", todayISO())),
+        adminField("Admitted on", adminInput("admitted_on", "date", todayISO())) +
+        adminField("Portal access", '<label class="check"><input type="checkbox" name="create_account" checked> Create a student sign-in account</label>', true) +
+        adminField("Account email", adminInput("account_email", "email", "", 'maxlength="190" placeholder="Leave blank to generate"'), true),
       "Enroll student"
     );
 
     openAdminDialog("Enroll " + admission.applicant, "Admission \u2192 Student", body);
+  }
+
+  function copyAccountDetails(button) {
+    var text = button.getAttribute("data-copy-account") || "";
+    var copied = function () { toast("Account details copied."); };
+    var fallback = function () {
+      var area = document.createElement("textarea");
+      area.value = text;
+      area.className = "sr-only";
+      area.setAttribute("readonly", "");
+      document.body.appendChild(area);
+      area.select();
+      try {
+        if (document.execCommand("copy")) copied();
+        else toast("Copy failed. Select the details manually.");
+      } catch (error) {
+        toast("Copy failed. Select the details manually.");
+      }
+      area.remove();
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(copied).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function openChangePasswordDialog() {
+    var body = adminForm(
+      "change-password",
+      adminField("Current password", adminInput("current_password", "password", "", 'autocomplete="current-password" maxlength="72" required'), true) +
+        adminField("New password", adminInput("password", "password", "", 'autocomplete="new-password" maxlength="72" required')) +
+        adminField("Confirm new password", adminInput("password_confirmation", "password", "", 'autocomplete="new-password" maxlength="72" required')) +
+        '<p class="admin-note field full">Use at least 10 characters with an uppercase letter, a lowercase letter, a number and a symbol.</p>',
+      "Update password"
+    );
+
+    openAdminDialog("Change password", "Account security", body);
+  }
+
+  function showPortalAccountDialog(account, studentName) {
+    var portalUrl = new URL("portal.html", window.location.href).href;
+    var copyText = "Al-Falaah School portal\n" +
+      "Student: " + studentName + "\n" +
+      "Email: " + account.email + "\n" +
+      "Temporary password: " + account.temporary_password + "\n" +
+      "Sign in: " + portalUrl;
+
+    var body =
+      '<div class="admin-facts">' +
+        "<div><span>Student</span><strong>" + esc(studentName) + "</strong></div>" +
+        "<div><span>Sign-in email</span><strong>" + esc(account.email) + "</strong></div>" +
+        "<div><span>Temporary password</span><strong class=\"temp-password\">" + esc(account.temporary_password) + "</strong></div>" +
+        "<div><span>Portal</span><strong>" + esc(portalUrl) + "</strong></div>" +
+      "</div>" +
+      '<p class="admin-note">Share these details with the family. This password is shown only once; ask the student to change it from the profile menu after signing in.</p>' +
+      '<div class="form-actions">' +
+        '<button class="btn btn--primary" type="button" data-copy-account="' + esc(copyText) + '"><i data-lucide="copy"></i> Copy details</button>' +
+        '<button class="btn btn--ghost" type="button" data-admin-dialog-close>Done</button>' +
+      "</div>";
+
+    openAdminDialog("Portal account created", "Student sign-in", body);
   }
 
   function financeTone(status) {

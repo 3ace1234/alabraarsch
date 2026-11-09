@@ -429,7 +429,26 @@ final class AdminController
         $admittedOn = Validator::date($data['admitted_on'] ?? null, 'admitted_on', false)
             ?? date('Y-m-d');
 
+        $createAccount = Validator::boolean($data['create_account'] ?? null, 'create_account', true);
+        $accountEmail = null;
+        $temporaryPassword = null;
+        if ($createAccount) {
+            $requestedEmail = Validator::email($data['account_email'] ?? null, 'account_email', false);
+            $accountEmail = $requestedEmail
+                ?? self::generateStudentEmail((string) $firstName, (string) $lastName);
+            if (Database::fetchValue('SELECT 1 FROM users WHERE email = ? LIMIT 1', [$accountEmail])) {
+                throw HttpException::validation('That account email is already in use.', [
+                    'account_email' => 'That email belongs to another portal account.',
+                ]);
+            }
+            $temporaryPassword = self::temporaryPassword();
+        }
+
         $studentUuid = Uuid::v4();
+        $passwordHash = $temporaryPassword !== null
+            ? password_hash($temporaryPassword, PASSWORD_DEFAULT)
+            : null;
+
         Database::transaction(static function () use (
             $admission,
             $studentUuid,
@@ -440,15 +459,36 @@ final class AdminController
             $gender,
             $class,
             $house,
-            $admittedOn
+            $admittedOn,
+            $accountEmail,
+            $passwordHash
         ): void {
+            $userId = null;
+            if ($accountEmail !== null && $passwordHash !== null) {
+                $userId = Database::insert(
+                    'INSERT INTO users
+                        (uuid, email, password_hash, role, first_name, last_name, status, password_changed_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+                    [
+                        Uuid::v4(),
+                        $accountEmail,
+                        $passwordHash,
+                        'student',
+                        $firstName,
+                        $lastName,
+                        'active',
+                    ]
+                );
+            }
+
             $studentId = Database::insert(
                 'INSERT INTO students
-                    (uuid, admission_no, first_name, last_name, date_of_birth, gender,
+                    (uuid, user_id, admission_no, first_name, last_name, date_of_birth, gender,
                      class_id, house, status, admitted_on)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [
                     $studentUuid,
+                    $userId,
                     $admissionNo,
                     $firstName,
                     $lastName,
@@ -471,6 +511,7 @@ final class AdminController
             'student' => $studentUuid,
             'admission_no' => $admissionNo,
             'class' => $class['name'],
+            'account' => $accountEmail,
         ], (int) $user['id']);
 
         $fresh = Database::fetch(
@@ -481,7 +522,15 @@ final class AdminController
             throw HttpException::server('The enrolled application could not be reloaded.');
         }
 
-        Response::ok(self::presentAdmission($fresh), 201);
+        $payload = self::presentAdmission($fresh);
+        $payload['portal_account'] = $accountEmail !== null
+            ? [
+                'email' => $accountEmail,
+                'temporary_password' => $temporaryPassword,
+            ]
+            : null;
+
+        Response::ok($payload, 201);
     }
 
     public static function subscribers(): never
@@ -919,6 +968,57 @@ final class AdminController
         return [$first, implode(' ', $parts)];
     }
 
+    private static function generateStudentEmail(string $firstName, string $lastName): string
+    {
+        $slug = static function (string $value): string {
+            $value = strtolower(trim($value));
+            $value = preg_replace('/[^a-z0-9]+/', '.', $value) ?? '';
+
+            return trim($value, '.');
+        };
+
+        $base = trim($slug($firstName) . '.' . $slug($lastName), '.');
+        if ($base === '') {
+            $base = 'student';
+        }
+
+        $domain = 'student.alfalaah.edu.ng';
+        $candidate = $base . '@' . $domain;
+        $suffix = 1;
+        while (Database::fetchValue('SELECT 1 FROM users WHERE email = ? LIMIT 1', [$candidate])) {
+            $suffix++;
+            $candidate = $base . $suffix . '@' . $domain;
+        }
+
+        return $candidate;
+    }
+
+    private static function temporaryPassword(): string
+    {
+        $lower = 'abcdefghjkmnpqrstuvwxyz';
+        $upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $digits = '23456789';
+        $symbols = '@#$%&*!';
+        $all = $lower . $upper . $digits . $symbols;
+        $chars = [
+            $upper[random_int(0, strlen($upper) - 1)],
+            $lower[random_int(0, strlen($lower) - 1)],
+            $digits[random_int(0, strlen($digits) - 1)],
+            $symbols[random_int(0, strlen($symbols) - 1)],
+        ];
+
+        for ($index = 0; $index < 8; $index++) {
+            $chars[] = $all[random_int(0, strlen($all) - 1)];
+        }
+
+        for ($index = count($chars) - 1; $index > 0; $index--) {
+            $swap = random_int(0, $index);
+            [$chars[$index], $chars[$swap]] = [$chars[$swap], $chars[$index]];
+        }
+
+        return implode('', $chars);
+    }
+
     private static function generateAdmissionNo(): string
     {
         $year = date('Y');
@@ -941,9 +1041,11 @@ final class AdminController
         $student = null;
         if (!empty($row['student_id'])) {
             $linked = Database::fetch(
-                'SELECT s.uuid, s.first_name, s.last_name, s.admission_no, c.name AS class_name
+                'SELECT s.uuid, s.first_name, s.last_name, s.admission_no, c.name AS class_name,
+                        u.email AS account_email
                  FROM students s
                  INNER JOIN classes c ON c.id = s.class_id
+                 LEFT JOIN users u ON u.id = s.user_id
                  WHERE s.id = ? LIMIT 1',
                 [(int) $row['student_id']]
             );
@@ -953,6 +1055,7 @@ final class AdminController
                     'name' => trim($linked['first_name'] . ' ' . $linked['last_name']),
                     'admission_no' => $linked['admission_no'],
                     'class' => $linked['class_name'],
+                    'account' => $linked['account_email'] ?? null,
                 ];
             }
         }
