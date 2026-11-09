@@ -444,9 +444,76 @@ final class AdminController
             $temporaryPassword = self::temporaryPassword();
         }
 
+        $createGuardianAccount = Validator::boolean(
+            $data['create_guardian_account'] ?? null,
+            'create_guardian_account',
+            true
+        );
+        $guardianAccount = null;
+        if ($createGuardianAccount) {
+            $guardianEmail = Validator::email($data['guardian_email'] ?? null, 'guardian_email', false)
+                ?? Validator::email($admission['email'] ?? null, 'guardian_email', false);
+            if ($guardianEmail !== null) {
+                if ($guardianEmail === $accountEmail) {
+                    throw HttpException::validation('The student and guardian emails must be different.', [
+                        'guardian_email' => 'Use a different email from the student sign-in address.',
+                    ]);
+                }
+
+                [$guardianFirst, $guardianLast] = self::splitApplicantName((string) $admission['guardian_name']);
+                $guardianFirst = Validator::string(
+                    $data['guardian_first_name'] ?? $guardianFirst,
+                    'guardian_first_name',
+                    1,
+                    80
+                );
+                $guardianLast = Validator::string(
+                    $data['guardian_last_name'] ?? $guardianLast,
+                    'guardian_last_name',
+                    0,
+                    80,
+                    false
+                ) ?? '';
+                $guardianPhone = Validator::string(
+                    $data['guardian_phone'] ?? ($admission['phone'] ?? null),
+                    'guardian_phone',
+                    0,
+                    30,
+                    false
+                );
+
+                $existingGuardian = Database::fetch(
+                    'SELECT id, role, email, first_name, last_name FROM users WHERE email = ? LIMIT 1',
+                    [$guardianEmail]
+                );
+                if ($existingGuardian !== null && $existingGuardian['role'] !== 'parent') {
+                    throw HttpException::validation('That guardian email belongs to another account.', [
+                        'guardian_email' => 'That email belongs to a non-parent portal account.',
+                    ]);
+                }
+                if ($existingGuardian !== null) {
+                    $guardianFirst = (string) $existingGuardian['first_name'];
+                    $guardianLast = (string) $existingGuardian['last_name'];
+                }
+
+                $guardianAccount = [
+                    'user_id' => $existingGuardian !== null ? (int) $existingGuardian['id'] : null,
+                    'email' => $guardianEmail,
+                    'temporary_password' => $existingGuardian === null ? self::temporaryPassword() : null,
+                    'created' => $existingGuardian === null,
+                    'first_name' => (string) $guardianFirst,
+                    'last_name' => $guardianLast,
+                    'phone' => $guardianPhone,
+                ];
+            }
+        }
+
         $studentUuid = Uuid::v4();
         $passwordHash = $temporaryPassword !== null
             ? password_hash($temporaryPassword, PASSWORD_DEFAULT)
+            : null;
+        $guardianPasswordHash = $guardianAccount !== null && $guardianAccount['temporary_password'] !== null
+            ? password_hash((string) $guardianAccount['temporary_password'], PASSWORD_DEFAULT)
             : null;
 
         Database::transaction(static function () use (
@@ -461,7 +528,9 @@ final class AdminController
             $house,
             $admittedOn,
             $accountEmail,
-            $passwordHash
+            $passwordHash,
+            $guardianAccount,
+            $guardianPasswordHash
         ): void {
             $userId = null;
             if ($accountEmail !== null && $passwordHash !== null) {
@@ -501,6 +570,33 @@ final class AdminController
                 ]
             );
 
+            if ($guardianAccount !== null) {
+                $guardianUserId = $guardianAccount['user_id'];
+                if ($guardianUserId === null) {
+                    $guardianUserId = Database::insert(
+                        'INSERT INTO users
+                            (uuid, email, password_hash, role, first_name, last_name, phone, status, password_changed_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+                        [
+                            Uuid::v4(),
+                            $guardianAccount['email'],
+                            $guardianPasswordHash,
+                            'parent',
+                            $guardianAccount['first_name'],
+                            $guardianAccount['last_name'],
+                            $guardianAccount['phone'],
+                            'active',
+                        ]
+                    );
+                }
+
+                Database::insert(
+                    'INSERT INTO student_guardians (student_id, user_id, relationship, is_primary)
+                     VALUES (?, ?, ?, 1)',
+                    [$studentId, (int) $guardianUserId, 'guardian']
+                );
+            }
+
             Database::execute(
                 "UPDATE admission_applications SET status = 'enrolled', student_id = ? WHERE id = ?",
                 [$studentId, (int) $admission['id']]
@@ -512,6 +608,8 @@ final class AdminController
             'admission_no' => $admissionNo,
             'class' => $class['name'],
             'account' => $accountEmail,
+            'guardian_account' => $guardianAccount['email'] ?? null,
+            'guardian_account_created' => $guardianAccount !== null ? $guardianAccount['created'] : null,
         ], (int) $user['id']);
 
         $fresh = Database::fetch(
@@ -527,6 +625,14 @@ final class AdminController
             ? [
                 'email' => $accountEmail,
                 'temporary_password' => $temporaryPassword,
+            ]
+            : null;
+        $payload['guardian_account'] = $guardianAccount !== null
+            ? [
+                'name' => trim($guardianAccount['first_name'] . ' ' . $guardianAccount['last_name']),
+                'email' => $guardianAccount['email'],
+                'temporary_password' => $guardianAccount['temporary_password'],
+                'created' => $guardianAccount['created'],
             ]
             : null;
 
@@ -1050,12 +1156,22 @@ final class AdminController
                 [(int) $row['student_id']]
             );
             if ($linked !== null) {
+                $guardian = Database::fetch(
+                    'SELECT u.email
+                     FROM student_guardians sg
+                     INNER JOIN users u ON u.id = sg.user_id
+                     WHERE sg.student_id = ?
+                     ORDER BY sg.is_primary DESC, sg.created_at ASC LIMIT 1',
+                    [(int) $row['student_id']]
+                );
+
                 $student = [
                     'id' => $linked['uuid'],
                     'name' => trim($linked['first_name'] . ' ' . $linked['last_name']),
                     'admission_no' => $linked['admission_no'],
                     'class' => $linked['class_name'],
                     'account' => $linked['account_email'] ?? null,
+                    'guardian_account' => $guardian['email'] ?? null,
                 ];
             }
         }

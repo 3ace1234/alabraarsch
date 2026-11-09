@@ -3170,6 +3170,7 @@
         toast("Admission updated.");
       } else if (kind === "admission-enroll") {
         var accountToggle = form.querySelector('[name="create_account"]');
+        var guardianToggle = form.querySelector('[name="create_guardian_account"]');
         var enrolled = await API.post("/admin/admissions/" + encodeURIComponent(data.id) + "/enroll", {
           first_name: data.first_name,
           last_name: data.last_name,
@@ -3180,13 +3181,17 @@
           house: data.house || null,
           admitted_on: data.admitted_on || null,
           create_account: !!(accountToggle && accountToggle.checked),
-          account_email: data.account_email || null
+          account_email: data.account_email || null,
+          create_guardian_account: !!(guardianToggle && guardianToggle.checked),
+          guardian_email: data.guardian_email || null
         });
         var enrolledAdmission = enrolled && enrolled.data ? enrolled.data : null;
         var portalAccount = enrolledAdmission ? enrolledAdmission.portal_account || null : null;
+        var guardianAccount = enrolledAdmission ? enrolledAdmission.guardian_account || null : null;
         if (enrolledAdmission) {
           var admissionRecord = Object.assign({}, enrolledAdmission);
           delete admissionRecord.portal_account;
+          delete admissionRecord.guardian_account;
           DATA.adminAdmissions = DATA.adminAdmissions.map(function (row) {
             return row.id === admissionRecord.id ? admissionRecord : row;
           });
@@ -3195,9 +3200,14 @@
         await reloadAdminStudents();
         refreshAdminBadges();
         toast("Student enrolled and added to the register.");
-        if (portalAccount) {
+        if (portalAccount || guardianAccount) {
           afterSave = function () {
-            showPortalAccountDialog(portalAccount, data.first_name + " " + data.last_name);
+            showPortalAccountDialog({
+              student: portalAccount
+                ? Object.assign({ name: data.first_name + " " + data.last_name }, portalAccount)
+                : null,
+              guardian: guardianAccount
+            });
           };
         }
       } else if (kind === "invoice-create") {
@@ -3886,6 +3896,9 @@
         : (admission.status === "enrolled" ? "No linked student record" : "Not enrolled yet")],
       ["Portal account", admission.student
         ? (admission.student.account || "No sign-in account")
+        : "\u2014"],
+      ["Guardian account", admission.student
+        ? (admission.student.guardian_account || "No sign-in account")
         : "\u2014"]
     ];
     var canEnroll = !admission.student && (admission.status === "offer" || admission.status === "enrolled");
@@ -3961,7 +3974,20 @@
         adminField("House", adminSelect("house", houses, "")) +
         adminField("Admitted on", adminInput("admitted_on", "date", todayISO())) +
         adminField("Portal access", '<label class="check"><input type="checkbox" name="create_account" checked> Create a student sign-in account</label>', true) +
-        adminField("Account email", adminInput("account_email", "email", "", 'maxlength="190" placeholder="Leave blank to generate"'), true),
+        adminField("Account email", adminInput("account_email", "email", "", 'maxlength="190" placeholder="Leave blank to generate"'), true) +
+        adminField("Guardian access", '<label class="check"><input type="checkbox" name="create_guardian_account" checked> Create a parent/guardian sign-in account</label>', true) +
+        adminField(
+          "Guardian email",
+          adminInput(
+            "guardian_email",
+            "email",
+            admission.email || "",
+            'maxlength="190" placeholder="' +
+              (admission.email ? "Defaults to the application email" : "Add an email to create a guardian account") +
+              '"'
+          ),
+          true
+        ),
       "Enroll student"
     );
 
@@ -4007,28 +4033,56 @@
     openAdminDialog("Change password", "Account security", body);
   }
 
-  function showPortalAccountDialog(account, studentName) {
+  function showPortalAccountDialog(accounts) {
     var portalUrl = new URL("portal.html", window.location.href).href;
-    var copyText = "Al-Falaah School portal\n" +
-      "Student: " + studentName + "\n" +
-      "Email: " + account.email + "\n" +
-      "Temporary password: " + account.temporary_password + "\n" +
-      "Sign in: " + portalUrl;
+    var rows = "";
+    var copyLines = ["Al-Falaah School portal"];
+
+    [
+      ["Student", accounts.student],
+      ["Parent/guardian", accounts.guardian]
+    ].forEach(function (group) {
+      var label = group[0];
+      var account = group[1];
+      if (!account) return;
+
+      var password = account.temporary_password || "Existing account \u2014 password unchanged";
+      rows +=
+        "<div><span>" + esc(label) + "</span><strong>" + esc(account.name) + "</strong></div>" +
+        "<div><span>" + esc(label) + " email</span><strong>" + esc(account.email) + "</strong></div>" +
+        "<div><span>" + esc(label) + " password</span><strong class=\"temp-password\">" + esc(password) + "</strong></div>";
+
+      copyLines.push("");
+      copyLines.push(label + ": " + account.name);
+      copyLines.push("Email: " + account.email);
+      copyLines.push(account.temporary_password
+        ? "Temporary password: " + account.temporary_password
+        : "Password: unchanged (existing portal account)");
+    });
+
+    rows += "<div><span>Portal</span><strong>" + esc(portalUrl) + "</strong></div>";
+    copyLines.push("");
+    copyLines.push("Sign in: " + portalUrl);
+
+    var note = accounts.guardian && !accounts.guardian.created
+      ? "That guardian already had a portal account, so it was linked to this student and the password is unchanged. New passwords are shown only once; ask each person to change theirs from the profile menu after signing in."
+      : "Share these details with the family. New passwords are shown only once; ask each person to change theirs from the profile menu after signing in.";
 
     var body =
-      '<div class="admin-facts">' +
-        "<div><span>Student</span><strong>" + esc(studentName) + "</strong></div>" +
-        "<div><span>Sign-in email</span><strong>" + esc(account.email) + "</strong></div>" +
-        "<div><span>Temporary password</span><strong class=\"temp-password\">" + esc(account.temporary_password) + "</strong></div>" +
-        "<div><span>Portal</span><strong>" + esc(portalUrl) + "</strong></div>" +
-      "</div>" +
-      '<p class="admin-note">Share these details with the family. This password is shown only once; ask the student to change it from the profile menu after signing in.</p>' +
+      '<div class="admin-facts">' + rows + "</div>" +
+      '<p class="admin-note">' + esc(note) + "</p>" +
       '<div class="form-actions">' +
-        '<button class="btn btn--primary" type="button" data-copy-account="' + esc(copyText) + '"><i data-lucide="copy"></i> Copy details</button>' +
+        '<button class="btn btn--primary" type="button" data-copy-account="' + esc(copyLines.join("\n")) + '"><i data-lucide="copy"></i> Copy details</button>' +
         '<button class="btn btn--ghost" type="button" data-admin-dialog-close>Done</button>' +
       "</div>";
 
-    openAdminDialog("Portal account created", "Student sign-in", body);
+    var title = accounts.student && accounts.guardian
+      ? "Portal accounts ready"
+      : (accounts.student
+        ? "Portal account created"
+        : (accounts.guardian.created ? "Guardian account ready" : "Guardian account linked"));
+
+    openAdminDialog(title, "Sign-in details", body);
   }
 
   function financeTone(status) {

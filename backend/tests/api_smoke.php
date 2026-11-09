@@ -372,6 +372,19 @@ try {
         is_array($portalAccount) && !empty($portalAccount['temporary_password']),
         'admin: temporary password returned once'
     );
+    $guardianAccount = $enrolled['data']['guardian_account'] ?? null;
+    check(
+        is_array($guardianAccount) && ($guardianAccount['email'] ?? null) === 'smoke-admission@example.com',
+        'admin: enrollment creates a guardian account from the application email'
+    );
+    check(
+        is_array($guardianAccount) && !empty($guardianAccount['temporary_password']),
+        'admin: guardian temporary password returned once'
+    );
+    check(
+        is_array($guardianAccount) && ($guardianAccount['created'] ?? null) === true,
+        'admin: guardian account is newly created'
+    );
 
     expects(
         $admin->post(
@@ -419,6 +432,57 @@ try {
         expects($returning->post('/auth/logout'), 204, 'new student: signs in with the new password');
     }
 
+    if (is_array($guardianAccount) && !empty($guardianAccount['email'])) {
+        $newGuardian = signIn(
+            $base,
+            (string) $guardianAccount['email'],
+            (string) $guardianAccount['temporary_password'],
+            'parent'
+        );
+        $guardianDashboard = expects($newGuardian->get('/dashboard'), 200, 'new guardian: can open the dashboard');
+        $seesChild = false;
+        foreach ($guardianDashboard['data']['children'] ?? [] as $child) {
+            if (($child['student']['id'] ?? null) === $enrolledStudentId) {
+                $seesChild = true;
+                break;
+            }
+        }
+        check($seesChild, 'new guardian: sees the newly enrolled child');
+        expects($newGuardian->post('/auth/logout'), 204, 'new guardian: logout');
+    }
+
+    $reuseUuid = Uuid::v4();
+    $reuseId = Database::insert(
+        "INSERT INTO admission_applications
+            (uuid, applicant_name, guardian_name, email, phone, level, status, notes)
+         VALUES (?, ?, ?, ?, ?, 'primary', 'offer', ?)",
+        [
+            $reuseUuid,
+            'Smoke Sibling Applicant',
+            'Smoke Test Guardian',
+            'smoke-admission@example.com',
+            '+234 800 000 0000',
+            'Temporary record created by the API smoke test.',
+        ]
+    );
+    $reused = expects(
+        $admin->post(
+            '/admin/admissions/' . rawurlencode($reuseUuid) . '/enroll',
+            ['class_id' => $enrollClass['id'], 'create_account' => false]
+        ),
+        201,
+        'admin: second enrollment reuses the guardian account'
+    );
+    $reusedGuardian = $reused['data']['guardian_account'] ?? null;
+    check(
+        is_array($reusedGuardian)
+            && ($reusedGuardian['created'] ?? null) === false
+            && ($reusedGuardian['temporary_password'] ?? null) === null,
+        'admin: existing guardian is linked without a new password'
+    );
+    $reuseStudentId = $reused['data']['student']['id'] ?? null;
+    check(is_string($reuseStudentId), 'admin: reused-guardian enrollment links a student');
+
     $validationUuid = Uuid::v4();
     $validationId = Database::insert(
         "INSERT INTO admission_applications
@@ -440,13 +504,21 @@ try {
     );
 
     Database::execute('DELETE FROM admission_applications WHERE id = ?', [$validationId]);
+    Database::execute('DELETE FROM admission_applications WHERE id = ?', [$reuseId]);
     Database::execute('DELETE FROM admission_applications WHERE id = ?', [$tempAdmissionId]);
     if (is_string($enrolledStudentId)) {
         Database::execute('DELETE FROM students WHERE uuid = ?', [$enrolledStudentId]);
     }
+    if (is_string($reuseStudentId)) {
+        Database::execute('DELETE FROM students WHERE uuid = ?', [$reuseStudentId]);
+    }
     if (is_array($portalAccount) && !empty($portalAccount['email'])) {
         Database::execute('DELETE FROM login_attempts WHERE email = ?', [$portalAccount['email']]);
         Database::execute('DELETE FROM users WHERE email = ?', [$portalAccount['email']]);
+    }
+    if (is_array($guardianAccount) && !empty($guardianAccount['email'])) {
+        Database::execute('DELETE FROM login_attempts WHERE email = ?', [$guardianAccount['email']]);
+        Database::execute('DELETE FROM users WHERE email = ?', [$guardianAccount['email']]);
     }
 
     $currentTerm = null;

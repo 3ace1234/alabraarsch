@@ -410,7 +410,18 @@ response and is never stored in plain text or written to the audit log. The
 dashboard shows it once with a copy button so the office can hand it to the
 family. Signed-in users can change their password from the profile menu, which
 calls `POST /auth/password` and keeps the current session while ending others.
-This endpoint does not create guardian (parent) accounts.
+
+Enrollment also creates and links a parent/guardian portal account by default.
+Set `create_guardian_account` to `false` to skip it. The guardian email comes
+from `guardian_email`, falling back to the application email; no guardian
+account is created when neither is present. If a parent account with that email
+already exists, it is linked to the new student instead of being duplicated and
+the response marks `guardian_account.created` as `false` with no password. New
+guardian accounts use the guardian name and phone from the application and are
+linked through `student_guardians` with the `guardian` relationship. The
+response returns `guardian_account.email`, `temporary_password` (once) and
+`created`, and the dashboard shows both sets of credentials together with a
+copy button.
 
 ## Results workflow
 
