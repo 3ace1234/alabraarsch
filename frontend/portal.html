@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 
@@ -277,10 +277,11 @@
             <li><i data-lucide="mail"></i><a href="mailto:info@alfalaah.edu.ng">info@alfalaah.edu.ng</a></li>
           </ul>
           <form class="newsletter" data-newsletter>
-            <input type="email" placeholder="Email for school updates" aria-label="Email address" required>
+            <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <input type="email" name="email" placeholder="Email for school updates" aria-label="Email address" maxlength="190" autocomplete="email" required>
             <button type="submit" aria-label="Subscribe"><i data-lucide="send"></i></button>
           </form>
-          <p class="newsletter-msg" style="font-size:.82rem;color:var(--color-accent-light);margin-top:10px;min-height:1.2em"></p>
+          <p class="newsletter-msg" role="status" aria-live="polite"></p>
         </div>
       </div>
     </div>
@@ -301,8 +302,8 @@
   <button class="to-top" id="toTop" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/api.js?v=1"></script>
-  <script src="js/main.js?v=4"></script>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/main.js?v=6"></script>
   <script src="js/portal.js?v=1"></script>
 </body>
 </html>

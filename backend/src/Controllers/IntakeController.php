@@ -15,7 +15,8 @@ use AlFalaah\Core\Validator;
 use AlFalaah\Services\IntakeNotifier;
 
 /**
- * Public website intake: admission enquiries and contact messages.
+ * Public website intake: admission enquiries, contact messages and
+ * newsletter subscriptions.
  * These routes are unauthenticated but still require a CSRF token.
  */
 final class IntakeController
@@ -136,6 +137,39 @@ final class IntakeController
         Response::ok([
             'received' => true,
             'reference' => strtoupper(substr($uuid, 0, 8)),
+        ], 201);
+    }
+
+    public static function newsletter(): never
+    {
+        $data = self::body();
+        self::rejectBot($data);
+        self::throttle('newsletter.subscribed', 4);
+
+        $email = Validator::email($data['email'] ?? null, 'email', true);
+        assert($email !== null);
+
+        $uuid = Uuid::v4();
+        Database::execute(
+            "INSERT INTO newsletter_subscribers (uuid, email, status, source)
+             VALUES (?, ?, 'subscribed', 'website')
+             ON DUPLICATE KEY UPDATE status = 'subscribed', updated_at = CURRENT_TIMESTAMP",
+            [$uuid, $email]
+        );
+
+        $stored = Database::fetch(
+            'SELECT uuid FROM newsletter_subscribers WHERE email = ? LIMIT 1',
+            [$email]
+        );
+        $reference = (string) ($stored['uuid'] ?? $uuid);
+
+        Audit::record('newsletter.subscribed', 'newsletter_subscriber', $reference, [
+            'source' => 'website',
+        ]);
+
+        Response::ok([
+            'subscribed' => true,
+            'reference' => strtoupper(substr($reference, 0, 8)),
         ], 201);
     }
 

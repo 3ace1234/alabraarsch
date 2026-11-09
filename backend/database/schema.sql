@@ -379,6 +379,20 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     KEY idx_contact_messages_status (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    uuid       CHAR(36)        NOT NULL,
+    email      VARCHAR(190)    NOT NULL,
+    status     ENUM('subscribed','unsubscribed') NOT NULL DEFAULT 'subscribed',
+    source     VARCHAR(40)     NOT NULL DEFAULT 'website',
+    created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_newsletter_uuid (uuid),
+    UNIQUE KEY uq_newsletter_email (email),
+    KEY idx_newsletter_status (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS assignments (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     uuid        CHAR(36)        NOT NULL,

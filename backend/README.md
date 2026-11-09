@@ -53,7 +53,7 @@ want to keep. Use `--no-seed` to apply the schema without demo data.
 it. It is idempotent, so it is safe to run more than once. It requires
 `DB_ADMIN_USERNAME` and `DB_ADMIN_PASSWORD` from `.env` because it alters table
 definitions, then adds the admission columns used by the website form and creates
-the `contact_messages` table when either is missing:
+the `contact_messages` and `newsletter_subscribers` tables when either is missing:
 
 ```bash
 php backend/scripts/migrate.php
@@ -245,12 +245,17 @@ All paths are relative to `/api`. `auth` means a signed-in session is required.
 | POST | `/auth/password` | auth + CSRF | Change the current password |
 | POST | `/admissions` | public + CSRF | Submit a website admission application |
 | POST | `/contact` | public + CSRF | Submit a website contact message |
+| POST | `/newsletter` | public + CSRF | Subscribe an email to school updates |
 
 Public intake endpoints are unauthenticated but still require a CSRF token from
 `GET /api/session`. They validate and normalise the input, reject honeypot
 submissions, throttled to four submissions per IP per minute, and record every
 write in `audit_logs`. Successful submissions return `201` with a short
 `reference` value for the family to quote.
+
+`POST /newsletter` is idempotent: subscribing an email that already exists
+re-activates it instead of creating a duplicate. Administrators can list and
+change subscriber status from the dashboard.
 
 ### Email notifications
 
@@ -369,6 +374,8 @@ exists.
 | PATCH | `/admin/admissions/{id}` | admin + CSRF | Update admission status or notes |
 | GET | `/admin/messages` | admin | Paginated contact inbox |
 | PATCH | `/admin/messages/{id}` | admin + CSRF | Update contact message status |
+| GET | `/admin/subscribers` | admin | Paginated newsletter subscriber list |
+| PATCH | `/admin/subscribers/{id}` | admin + CSRF | Subscribe or unsubscribe an email |
 | GET | `/admin/finance` | admin | Term fee summary, invoices and recent payments |
 | POST | `/admin/payments` | admin + CSRF | Record a payment against an invoice |
 | POST | `/admin/invoices` | admin + CSRF | Create a fee invoice |

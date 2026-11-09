@@ -436,10 +436,52 @@
   /* ---------- Footer newsletter ---------- */
   function initNewsletter() {
     document.querySelectorAll("[data-newsletter]").forEach(function (form) {
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        form.querySelector(".newsletter-msg").textContent = "Alhamdulillah! You're subscribed to Al-Falaah updates.";
-        form.reset();
+      var input = form.querySelector('[name="email"]');
+      var button = form.querySelector('button[type="submit"]');
+      var msg = form.parentElement ? form.parentElement.querySelector(".newsletter-msg") : null;
+
+      function show(text, isError) {
+        if (!msg) return;
+        msg.textContent = text;
+        msg.classList.toggle("newsletter-msg--ok", !isError);
+        msg.classList.toggle("newsletter-msg--err", isError);
+      }
+
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        if (!input) return;
+
+        var email = input.value.trim();
+        var valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        input.classList.toggle("is-invalid", !valid);
+        if (!valid) {
+          show("Enter a valid email address to subscribe.", true);
+          return;
+        }
+
+        var api = window.AlFalaahApi;
+        if (!api) {
+          show("The portal client could not load. Refresh the page and try again.", true);
+          return;
+        }
+
+        if (button) button.disabled = true;
+        show("Subscribing\u2026", false);
+
+        var honeypot = form.querySelector('[name="website"]');
+        try {
+          await api.bootstrap();
+          await api.post("/newsletter", {
+            email: email,
+            website: honeypot ? honeypot.value : ""
+          });
+          show("Alhamdulillah! You're subscribed to Al-Falaah updates.", false);
+          form.reset();
+        } catch (error) {
+          show(api.message(error), true);
+        } finally {
+          if (button) button.disabled = false;
+        }
       });
     });
   }

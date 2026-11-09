@@ -91,7 +91,8 @@
     terms: [],
     resultSheets: [],
     announcements: [],
-    messages: []
+    messages: [],
+    subscribers: []
   };
 
   /* ============================================================
@@ -173,7 +174,8 @@
         { key: "admissions", label: "Admissions", icon: "user-plus", group: "Administration" },
         { key: "finance", label: "Fees & finance", icon: "wallet", group: "Administration" },
         { key: "announcements", label: "Announcements", icon: "megaphone", group: "School" },
-        { key: "messages", label: "Messages", icon: "mail", group: "School" }
+        { key: "messages", label: "Messages", icon: "mail", group: "School" },
+        { key: "subscribers", label: "Newsletter", icon: "send", group: "School" }
       ],
       notifications: []
     }
@@ -207,7 +209,8 @@
     adminFinance: null,
     adminResultSheets: [],
     adminAnnouncements: [],
-    adminMessages: []
+    adminMessages: [],
+    adminSubscribers: []
   };
 
   var API = window.AlFalaahApi;
@@ -625,7 +628,8 @@
       terms: extras.terms || [],
       resultSheets: extras.resultSheets || [],
       announcements: extras.announcements || [],
-      messages: extras.messages || []
+      messages: extras.messages || [],
+      subscribers: extras.subscribers || []
     };
 
     ROLES.admin.meta = "School administrator";
@@ -670,6 +674,7 @@
         { key: "adminResultSheets", call: API.get("/admin/result-sheets") },
         { key: "adminAnnouncements", call: API.get("/admin/announcements") },
         { key: "adminMessages", call: API.get("/admin/messages?per_page=100") },
+        { key: "adminSubscribers", call: API.get("/admin/subscribers?per_page=100") },
         { key: "classes", call: API.get("/classes") },
         { key: "terms", call: API.get("/terms") },
         { key: "subjects", call: API.get("/subjects") }
@@ -707,6 +712,7 @@
       adminResultSheets: extras.adminResultSheets && extras.adminResultSheets.data ? extras.adminResultSheets.data : [],
       adminAnnouncements: extras.adminAnnouncements && extras.adminAnnouncements.data ? extras.adminAnnouncements.data : [],
       adminMessages: extras.adminMessages && extras.adminMessages.data ? extras.adminMessages.data : [],
+      adminSubscribers: extras.adminSubscribers && extras.adminSubscribers.data ? extras.adminSubscribers.data : [],
       classes: extras.classes && extras.classes.data ? extras.classes.data : [],
       terms: extras.terms && extras.terms.data ? extras.terms.data : [],
       subjects: extras.subjects && extras.subjects.data ? extras.subjects.data : [],
@@ -729,6 +735,7 @@
     DATA.adminResultSheets = data.adminResultSheets;
     DATA.adminAnnouncements = data.adminAnnouncements;
     DATA.adminMessages = data.adminMessages;
+    DATA.adminSubscribers = data.adminSubscribers;
     DATA.classes = data.classes;
     DATA.terms = data.terms;
     DATA.subjects = data.subjects;
@@ -769,7 +776,8 @@
         finance: data.adminFinance,
         classes: data.classes,
         terms: data.terms,
-        resultSheets: data.adminResultSheets
+        resultSheets: data.adminResultSheets,
+        subscribers: data.adminSubscribers
       });
     } else {
       throw new Error("This account type cannot use the portal.");
@@ -1099,6 +1107,7 @@
         case "finance": html = adminFinanceView(); break;
         case "announcements": html = announcementsView(); break;
         case "messages": html = adminMessagesView(); break;
+        case "subscribers": html = adminSubscribersView(); break;
         default: html = overviewView();
       }
     }
@@ -3001,6 +3010,37 @@
     ADMIN.messages = DATA.adminMessages;
   }
 
+  async function reloadAdminSubscribers() {
+    var payload = await API.get("/admin/subscribers?per_page=100");
+    DATA.adminSubscribers = payload && payload.data ? payload.data : [];
+    ADMIN.subscribers = DATA.adminSubscribers;
+  }
+
+  async function toggleAdminSubscriber(id, currentStatus) {
+    var target = currentStatus === "subscribed" ? "unsubscribed" : "subscribed";
+    var prompt = target === "subscribed"
+      ? "Re-subscribe this email to the newsletter?"
+      : "Unsubscribe this email from the newsletter?";
+    if (!window.confirm(prompt)) return;
+
+    try {
+      var payload = await API.patch("/admin/subscribers/" + encodeURIComponent(id), { status: target });
+      var fresh = payload && payload.data ? payload.data : null;
+      if (fresh) {
+        DATA.adminSubscribers = DATA.adminSubscribers.map(function (row) {
+          return row.id === fresh.id ? fresh : row;
+        });
+        ADMIN.subscribers = DATA.adminSubscribers;
+      }
+      toast("Subscriber " + (target === "subscribed" ? "restored." : "unsubscribed."));
+      renderView();
+      icons();
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+    }
+  }
+
   async function reloadAdminFinance() {
     var payload = await API.get("/admin/finance");
     DATA.adminFinance = payload && payload.data ? payload.data : null;
@@ -3028,6 +3068,7 @@
     if (action === "announcement-archive") return archiveAdminAnnouncement(id);
     if (action === "admission-edit") return openAdmissionDialog(findById(ADMIN.admissions, id));
     if (action === "message-edit") return openMessageDialog(findById(DATA.adminMessages, id));
+    if (action === "subscriber-toggle") return toggleAdminSubscriber(id, button.getAttribute("data-status"));
     if (action === "invoice-create") return openInvoiceDialog();
     if (action === "payment-create") return openPaymentDialog(button.getAttribute("data-invoice-id") || "");
     if (action === "timetable-add") {
@@ -3506,7 +3547,54 @@
   }
 
   /* ============================================================
-     21d. ADMIN TIMETABLE BUILDER
+     21d. ADMIN NEWSLETTER SUBSCRIBERS
+     ============================================================ */
+  function adminSubscribersView() {
+    var list = Array.isArray(ADMIN.subscribers) ? ADMIN.subscribers : [];
+    var subscribed = list.filter(function (row) { return row.status === "subscribed"; });
+    var unsubscribed = list.filter(function (row) { return row.status === "unsubscribed"; });
+
+    var rows = list.map(function (row) {
+      var isActive = row.status === "subscribed";
+      return [
+        '<div class="cell-person"><strong>' + esc(row.email) + "</strong><span>" +
+          (row.source ? "Via " + esc(row.source) : "Website signup") + "</span></div>",
+        statusPill(row.status_label || statusLabel(row.status), isActive ? "ok" : "info"),
+        esc(row.source ? row.source.replace(/^./, function (ch) { return ch.toUpperCase(); }) : "\u2014"),
+        longDate(row.created_at),
+        '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="subscriber-toggle" data-id="' +
+          esc(row.id) + '" data-status="' + esc(row.status) + '">' +
+          (isActive ? "Unsubscribe" : "Subscribe") + "</button>"
+      ];
+    });
+
+    return pageHead({
+      eyebrow: "Administration",
+      title: "Newsletter",
+      lead: "Email addresses collected from the footer signup forms across the website.",
+      actions: statusPill(subscribed.length + " active", subscribed.length ? "ok" : "info")
+    }) +
+    statGrid([
+      stat({ icon: "send", label: "Active subscribers", value: subscribed.length, meta: "Receiving school updates", alert: subscribed.length > 0 }),
+      stat({ icon: "users", label: "Total signups", value: list.length, meta: "All time" }),
+      stat({ icon: "user-minus", label: "Unsubscribed", value: unsubscribed.length, meta: "Opted out" }),
+      stat({ icon: "globe", label: "Source", value: "Website", meta: "Footer signup forms" })
+    ]) +
+    panel({
+      title: "Subscriber list",
+      sub: list.length + " address" + (list.length === 1 ? "" : "es"),
+      body: rows.length
+        ? table(
+            [{ label: "Email" }, { label: "Status" }, { label: "Source" }, { label: "Added" }, { label: "Action", align: "right" }],
+            rows,
+            "Newsletter subscribers"
+          )
+        : emptyState("send", "No subscribers yet", "Emails entered in the website footer will appear here.")
+    });
+  }
+
+  /* ============================================================
+     21e. ADMIN TIMETABLE BUILDER
      ============================================================ */
   function adminTimetableState() {
     if (!state.adminTimetable) {

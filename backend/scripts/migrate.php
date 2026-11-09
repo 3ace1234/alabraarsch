@@ -102,6 +102,27 @@ try {
         echo "  - contact_messages: created\n";
     }
 
+    if ($tableExists($pdo, 'newsletter_subscribers')) {
+        echo "  - newsletter_subscribers: already present\n";
+    } else {
+        $pdo->exec(
+            "CREATE TABLE newsletter_subscribers (
+                id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                uuid       CHAR(36)        NOT NULL,
+                email      VARCHAR(190)    NOT NULL,
+                status     ENUM('subscribed','unsubscribed') NOT NULL DEFAULT 'subscribed',
+                source     VARCHAR(40)     NOT NULL DEFAULT 'website',
+                created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_newsletter_uuid (uuid),
+                UNIQUE KEY uq_newsletter_email (email),
+                KEY idx_newsletter_status (status, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        echo "  - newsletter_subscribers: created\n";
+    }
+
     echo "\nMigrations complete.\n";
 } catch (Throwable $exception) {
     Logger::error('Migration failed', ['exception' => $exception->getMessage()]);

@@ -374,6 +374,89 @@ final class AdminController
         Response::ok(self::presentAdmission($fresh));
     }
 
+    public static function subscribers(): never
+    {
+        Auth::requireRole('admin');
+        [$page, $perPage] = Validator::pagination(
+            self::scalarQuery('page'),
+            self::scalarQuery('per_page')
+        );
+        $status = Validator::enum(
+            Request::query('status'),
+            'status',
+            ['subscribed', 'unsubscribed'],
+            false
+        );
+        $search = Validator::string(Request::query('search'), 'search', 0, 190, false) ?? '';
+
+        $where = ['1 = 1'];
+        $params = [];
+        if ($status !== null) {
+            $where[] = 'status = ?';
+            $params[] = $status;
+        }
+        if ($search !== '') {
+            $where[] = 'email LIKE ?';
+            $params[] = '%' . $search . '%';
+        }
+
+        $whereSql = implode(' AND ', $where);
+        $total = (int) Database::fetchValue(
+            'SELECT COUNT(*) FROM newsletter_subscribers WHERE ' . $whereSql,
+            $params
+        );
+        $offset = ($page - 1) * $perPage;
+        $rows = Database::fetchAll(
+            "SELECT * FROM newsletter_subscribers WHERE {$whereSql}
+             ORDER BY created_at DESC, id DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+
+        Response::ok(array_map(
+            static fn (array $row): array => self::presentSubscriber($row),
+            $rows
+        ), 200, [
+            'pagination' => Database::paginate($total, $page, $perPage),
+        ]);
+    }
+
+    public static function updateSubscriber(array $params): never
+    {
+        $user = Auth::requireRole('admin');
+        $uuid = Validator::uuid($params['id'] ?? null, 'id');
+        $subscriber = Database::fetch(
+            'SELECT * FROM newsletter_subscribers WHERE uuid = ? LIMIT 1',
+            [$uuid]
+        );
+        if ($subscriber === null) {
+            throw HttpException::notFound('That subscriber was not found.');
+        }
+
+        $data = Request::body();
+        $status = Validator::enum($data['status'] ?? null, 'status', [
+            'subscribed', 'unsubscribed',
+        ]);
+
+        Database::execute(
+            'UPDATE newsletter_subscribers SET status = ? WHERE id = ?',
+            [$status, (int) $subscriber['id']]
+        );
+        Audit::record('newsletter.updated', 'newsletter_subscriber', $uuid, [
+            'status' => $status,
+        ], (int) $user['id']);
+
+        $fresh = Database::fetch(
+            'SELECT * FROM newsletter_subscribers WHERE id = ?',
+            [(int) $subscriber['id']]
+        );
+        if ($fresh === null) {
+            throw HttpException::server('The subscriber could not be reloaded.');
+        }
+
+        Response::ok(self::presentSubscriber($fresh));
+    }
+
     public static function messages(): never
     {
         Auth::requireRole('admin');
@@ -751,6 +834,19 @@ final class AdminController
             'status' => $row['status'],
             'status_label' => ucfirst($row['status']),
             'notes' => $row['notes'],
+            'created_at' => $row['created_at'],
+            'updated_at' => $row['updated_at'],
+        ];
+    }
+
+    private static function presentSubscriber(array $row): array
+    {
+        return [
+            'id' => $row['uuid'],
+            'email' => $row['email'],
+            'status' => $row['status'],
+            'status_label' => ucfirst($row['status']),
+            'source' => $row['source'],
             'created_at' => $row['created_at'],
             'updated_at' => $row['updated_at'],
         ];

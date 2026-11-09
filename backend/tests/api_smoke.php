@@ -110,6 +110,11 @@ final class ApiClient
     {
         return $this->request('POST', $path, $body, $csrf);
     }
+
+    public function patch(string $path, array|object|null $body = null, bool $csrf = true): array
+    {
+        return $this->request('PATCH', $path, $body, $csrf);
+    }
 }
 
 function baseUrl(): string
@@ -177,6 +182,16 @@ try {
     expects($anonymous->post('/admissions', (object) [], false), 403, 'anonymous: admission requires CSRF');
     expects($anonymous->post('/admissions', (object) []), 422, 'anonymous: incomplete admission rejected');
     expects($anonymous->post('/contact', (object) []), 422, 'anonymous: incomplete contact message rejected');
+    expects($anonymous->post('/newsletter', (object) [], false), 403, 'anonymous: newsletter requires CSRF');
+    expects($anonymous->post('/newsletter', (object) []), 422, 'anonymous: newsletter requires an email');
+    expects($anonymous->post('/newsletter', ['email' => 'not-an-email']), 422, 'anonymous: newsletter rejects an invalid email');
+    $newsletterEmail = 'smoke-newsletter@example.com';
+    $subscription = expects(
+        $anonymous->post('/newsletter', ['email' => $newsletterEmail]),
+        201,
+        'anonymous: newsletter subscription accepted'
+    );
+    check(($subscription['data']['subscribed'] ?? false) === true, 'anonymous: newsletter subscription flag');
 
     $student = signIn($base, 'aisha.abdullahi@student.alfalaah.edu.ng', $password, 'student');
     $dashboard = expects($student->get('/dashboard'), 200, 'student: dashboard');
@@ -269,6 +284,31 @@ try {
     expects($admin->get('/admin/admissions?per_page=3'), 200, 'admin: admissions');
     expects($admin->get('/admin/finance'), 200, 'admin: finance');
     expects($admin->get('/admin/messages?per_page=3'), 200, 'admin: message inbox');
+    $subscribers = expects($admin->get('/admin/subscribers?per_page=100'), 200, 'admin: newsletter subscriber list');
+    expects($student->get('/admin/subscribers'), 403, 'student: cannot view newsletter subscribers');
+
+    $subscriberId = null;
+    foreach ($subscribers['data'] ?? [] as $subscriber) {
+        if (($subscriber['email'] ?? null) === $newsletterEmail) {
+            $subscriberId = $subscriber['id'] ?? null;
+            break;
+        }
+    }
+    check(is_string($subscriberId), 'admin: newsletter subscriber stored');
+
+    if (is_string($subscriberId)) {
+        $updated = expects(
+            $admin->patch('/admin/subscribers/' . rawurlencode($subscriberId), ['status' => 'unsubscribed']),
+            200,
+            'admin: newsletter subscriber update'
+        );
+        check(($updated['data']['status'] ?? null) === 'unsubscribed', 'admin: newsletter subscriber status changed');
+        expects(
+            $admin->patch('/admin/subscribers/' . rawurlencode($subscriberId), ['status' => 'bogus']),
+            422,
+            'admin: invalid subscriber status rejected'
+        );
+    }
     expects($admin->get('/admin/teachers'), 200, 'admin: teacher list');
     $terms = expects($admin->get('/terms'), 200, 'admin: term list');
     $classes = expects($admin->get('/classes'), 200, 'admin: class list');

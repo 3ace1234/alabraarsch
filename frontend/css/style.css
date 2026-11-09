@@ -591,6 +591,13 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   clip: rect(0 0 0 0); clip-path: inset(50%);
   white-space: nowrap; border: 0;
 }
+.newsletter-msg {
+  margin-top: 10px;
+  min-height: 1.2em;
+  font-size: .82rem;
+  color: var(--color-accent-light);
+}
+.newsletter-msg--err { color: #ffd7d2; }
 
 /* ============================================================
    CONTACT / INFO CARDS

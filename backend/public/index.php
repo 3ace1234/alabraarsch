@@ -148,6 +148,7 @@ $router->get('/api/session', [AuthController::class, 'session'], ['auth' => fals
 $router->post('/api/auth/login', [AuthController::class, 'login'], ['auth' => false]);
 $router->post('/api/admissions', [IntakeController::class, 'admission'], ['auth' => false]);
 $router->post('/api/contact', [IntakeController::class, 'contact'], ['auth' => false]);
+$router->post('/api/newsletter', [IntakeController::class, 'newsletter'], ['auth' => false]);
 
 $router->post('/api/auth/logout', [AuthController::class, 'logout']);
 $router->get('/api/auth/me', [AuthController::class, 'me']);
@@ -202,6 +203,8 @@ $router->get('/api/admin/admissions', [AdminController::class, 'admissions'], ['
 $router->patch('/api/admin/admissions/{id}', [AdminController::class, 'updateAdmission'], ['roles' => ['admin']]);
 $router->get('/api/admin/messages', [AdminController::class, 'messages'], ['roles' => ['admin']]);
 $router->patch('/api/admin/messages/{id}', [AdminController::class, 'updateMessage'], ['roles' => ['admin']]);
+$router->get('/api/admin/subscribers', [AdminController::class, 'subscribers'], ['roles' => ['admin']]);
+$router->patch('/api/admin/subscribers/{id}', [AdminController::class, 'updateSubscriber'], ['roles' => ['admin']]);
 $router->get('/api/admin/finance', [AdminController::class, 'finance'], ['roles' => ['admin']]);
 $router->post('/api/admin/payments', [AdminController::class, 'recordPayment'], ['roles' => ['admin']]);
 $router->post('/api/admin/invoices', [AdminController::class, 'createInvoice'], ['roles' => ['admin']]);
