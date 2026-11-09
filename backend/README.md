@@ -73,6 +73,20 @@ Demo accounts are seeded only when `DEMO_PASSWORD` is present in `.env`:
 Use the value of `DEMO_PASSWORD` from your local `.env` as the password. Change
 these passwords before exposing the portal outside a development machine.
 
+### Test account list
+
+All seeded accounts share `DEMO_PASSWORD`. Generate a readable list instead of
+opening `.env`:
+
+```bash
+php backend/scripts/accounts.php          # print to the terminal
+php backend/scripts/accounts.php --write  # also save ./accounts.text
+```
+
+`accounts.text` is gitignored and meant for local testing only. Passwords in the
+database are stored as one-way hashes, so accounts created after seeding cannot
+be recovered this way.
+
 ## Project layout
 
 ```text

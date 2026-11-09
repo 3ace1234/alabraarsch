@@ -5,6 +5,8 @@
 backend/.env
 backend/.env.*
 !backend/.env.example
+accounts.text
+accounts.txt
 
 # Runtime files
 backend/storage/logs/*.log
