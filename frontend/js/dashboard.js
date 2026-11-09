@@ -3067,6 +3067,7 @@
     if (action === "announcement-edit") return openAnnouncementDialog(findById(DATA.adminAnnouncements, id));
     if (action === "announcement-archive") return archiveAdminAnnouncement(id);
     if (action === "admission-edit") return openAdmissionDialog(findById(ADMIN.admissions, id));
+    if (action === "admission-enroll") return openEnrollDialog(findById(ADMIN.admissions, id));
     if (action === "message-edit") return openMessageDialog(findById(DATA.adminMessages, id));
     if (action === "subscriber-toggle") return toggleAdminSubscriber(id, button.getAttribute("data-status"));
     if (action === "invoice-create") return openInvoiceDialog();
@@ -3145,6 +3146,27 @@
         }
         refreshAdminBadges();
         toast("Admission updated.");
+      } else if (kind === "admission-enroll") {
+        var enrolled = await API.post("/admin/admissions/" + encodeURIComponent(data.id) + "/enroll", {
+          first_name: data.first_name,
+          last_name: data.last_name,
+          class_id: data.class_id,
+          admission_no: data.admission_no || null,
+          date_of_birth: data.date_of_birth || null,
+          gender: data.gender || null,
+          house: data.house || null,
+          admitted_on: data.admitted_on || null
+        });
+        var enrolledAdmission = enrolled && enrolled.data ? enrolled.data : null;
+        if (enrolledAdmission) {
+          DATA.adminAdmissions = DATA.adminAdmissions.map(function (row) {
+            return row.id === enrolledAdmission.id ? enrolledAdmission : row;
+          });
+          ADMIN.admissions = DATA.adminAdmissions;
+        }
+        await reloadAdminStudents();
+        refreshAdminBadges();
+        toast("Student enrolled and added to the register.");
       } else if (kind === "invoice-create") {
         await API.post("/admin/invoices", {
           student_id: data.student_id,
@@ -3824,12 +3846,25 @@
       ["Preferred class", admission.class_label || "\u2014"],
       ["Date of birth", admission.date_of_birth ? longDate(admission.date_of_birth) : "\u2014"],
       ["Gender", admission.gender ? statusLabel(admission.gender) : "\u2014"],
-      ["Previous school", admission.previous_school || "\u2014"]
+      ["Previous school", admission.previous_school || "\u2014"],
+      ["Student record", admission.student
+        ? admission.student.name + " (" + admission.student.admission_no + ", " + admission.student.class + ")"
+        : (admission.status === "enrolled" ? "No linked student record" : "Not enrolled yet")]
     ];
+    var canEnroll = !admission.student && (admission.status === "offer" || admission.status === "enrolled");
+    var callout = canEnroll
+      ? '<div class="admin-callout">' +
+          "<div><strong>Create the student record</strong>" +
+          "<p>Convert this application into an active student. You can adjust the name, class and admission number first.</p></div>" +
+          '<button class="btn btn--gold" type="button" data-admin-action="admission-enroll" data-id="' +
+            esc(admission.id) + '"><i data-lucide="user-check"></i> Enroll student</button>' +
+        "</div>"
+      : "";
     var body =
       '<div class="admin-facts">' + facts.map(function (fact) {
         return '<div><span>' + esc(fact[0]) + "</span><strong>" + esc(fact[1]) + "</strong></div>";
       }).join("") + "</div>" +
+      callout +
       adminForm(
         "admission-edit",
         adminInput("id", "hidden", admission.id) +
@@ -3839,6 +3874,59 @@
       );
 
     openAdminDialog(admission.applicant, "Admission application", body);
+  }
+
+  function splitApplicantName(name) {
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    var first = parts.shift() || "";
+    return [first, parts.join(" ")];
+  }
+
+  function admissionClassOptions(level) {
+    var matching = DATA.classes.filter(function (classroom) { return classroom.level === level; });
+    var list = matching.length ? matching : DATA.classes;
+    return list.map(function (classroom) {
+      return { value: classroom.id, label: classroom.name };
+    });
+  }
+
+  function openEnrollDialog(admission) {
+    if (!admission || admission.student) return;
+    if (!DATA.classes.length) {
+      toast("Create a class before enrolling students.");
+      return;
+    }
+
+    var names = splitApplicantName(admission.applicant);
+    var classes = admissionClassOptions(admission.level);
+    var genders = [
+      { value: "", label: "Not specified" },
+      { value: "male", label: "Male" },
+      { value: "female", label: "Female" }
+    ];
+    var houses = [
+      { value: "", label: "Not assigned" },
+      { value: "Green", label: "Green" },
+      { value: "Gold", label: "Gold" },
+      { value: "Blue", label: "Blue" },
+      { value: "Red", label: "Red" }
+    ];
+
+    var body = adminForm(
+      "admission-enroll",
+      adminInput("id", "hidden", admission.id) +
+        adminField("First name", adminInput("first_name", "text", names[0], 'maxlength="80" required')) +
+        adminField("Last name", adminInput("last_name", "text", names[1], 'maxlength="80" required')) +
+        adminField("Class", adminSelect("class_id", classes, classes[0].value, "required")) +
+        adminField("Admission number", adminInput("admission_no", "text", "", 'maxlength="30" placeholder="Leave blank to generate"')) +
+        adminField("Date of birth", adminInput("date_of_birth", "date", admission.date_of_birth || "")) +
+        adminField("Gender", adminSelect("gender", genders, admission.gender || "")) +
+        adminField("House", adminSelect("house", houses, "")) +
+        adminField("Admitted on", adminInput("admitted_on", "date", todayISO())),
+      "Enroll student"
+    );
+
+    openAdminDialog("Enroll " + admission.applicant, "Admission \u2192 Student", body);
   }
 
   function financeTone(status) {

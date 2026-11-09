@@ -346,6 +346,7 @@ CREATE TABLE IF NOT EXISTS admission_applications (
     uuid            CHAR(36)        NOT NULL,
     applicant_name  VARCHAR(120)    NOT NULL,
     guardian_name   VARCHAR(120)    NOT NULL,
+    student_id      BIGINT UNSIGNED NULL,
     email           VARCHAR(190)    NULL,
     phone           VARCHAR(30)     NULL,
     level           ENUM('nursery','primary','junior_secondary','senior_secondary') NOT NULL,
@@ -360,7 +361,10 @@ CREATE TABLE IF NOT EXISTS admission_applications (
     PRIMARY KEY (id),
     UNIQUE KEY uq_admissions_uuid (uuid),
     KEY idx_admissions_status (status),
-    KEY idx_admissions_level (level)
+    KEY idx_admissions_level (level),
+    KEY idx_admissions_student (student_id),
+    CONSTRAINT fk_admissions_student FOREIGN KEY (student_id) REFERENCES students (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS contact_messages (

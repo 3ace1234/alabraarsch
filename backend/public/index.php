@@ -201,6 +201,7 @@ $router->post('/api/admin/result-sheets/{id}/return', [AdminController::class, '
 $router->post('/api/admin/terms/{id}/publish', [AdminController::class, 'publishTerm'], ['roles' => ['admin']]);
 $router->get('/api/admin/admissions', [AdminController::class, 'admissions'], ['roles' => ['admin']]);
 $router->patch('/api/admin/admissions/{id}', [AdminController::class, 'updateAdmission'], ['roles' => ['admin']]);
+$router->post('/api/admin/admissions/{id}/enroll', [AdminController::class, 'enrollAdmission'], ['roles' => ['admin']]);
 $router->get('/api/admin/messages', [AdminController::class, 'messages'], ['roles' => ['admin']]);
 $router->patch('/api/admin/messages/{id}', [AdminController::class, 'updateMessage'], ['roles' => ['admin']]);
 $router->get('/api/admin/subscribers', [AdminController::class, 'subscribers'], ['roles' => ['admin']]);

@@ -345,6 +345,19 @@ final class AdminController
         $values = [];
 
         if (array_key_exists('status', $data)) {
+            if (($data['status'] ?? null) === 'enrolled') {
+                throw HttpException::validation(
+                    'Enrol the application from the applicant dialog instead of setting status directly.',
+                    ['status' => 'Use the Enroll student action to create the student record.']
+                );
+            }
+            if (!empty($admission['student_id'])
+                && $data['status'] !== $admission['status']) {
+                throw HttpException::validation(
+                    'This application is linked to a student record.',
+                    ['status' => 'Update the student record instead of changing this application.']
+                );
+            }
             $fields[] = 'status = ?';
             $values[] = Validator::enum($data['status'], 'status', [
                 'new', 'assessment', 'offer', 'enrolled', 'declined',
@@ -372,6 +385,103 @@ final class AdminController
         }
 
         Response::ok(self::presentAdmission($fresh));
+    }
+
+    public static function enrollAdmission(array $params): never
+    {
+        $user = Auth::requireRole('admin');
+        $uuid = Validator::uuid($params['id'] ?? null, 'id');
+        $admission = Database::fetch(
+            'SELECT * FROM admission_applications WHERE uuid = ? LIMIT 1',
+            [$uuid]
+        );
+        if ($admission === null) {
+            throw HttpException::notFound('That admission enquiry was not found.');
+        }
+        if (!empty($admission['student_id'])) {
+            throw HttpException::conflict('This application has already been enrolled.');
+        }
+        if (!in_array($admission['status'], ['offer', 'enrolled'], true)) {
+            throw HttpException::conflict('Only applications with an offer can be enrolled.');
+        }
+
+        $data = Request::body();
+        $class = Academics::classByUuid(Validator::uuid($data['class_id'] ?? null, 'class_id'));
+
+        [$defaultFirst, $defaultLast] = self::splitApplicantName((string) $admission['applicant_name']);
+        $firstName = Validator::string($data['first_name'] ?? $defaultFirst, 'first_name', 1, 80);
+        $lastName = Validator::string($data['last_name'] ?? $defaultLast, 'last_name', 1, 80);
+        $admissionNo = Validator::string($data['admission_no'] ?? null, 'admission_no', 3, 30, false)
+            ?? self::generateAdmissionNo();
+        if (Database::fetchValue('SELECT 1 FROM students WHERE admission_no = ? LIMIT 1', [$admissionNo])) {
+            throw HttpException::validation('That admission number is already in use.', [
+                'admission_no' => 'That admission number is already in use.',
+            ]);
+        }
+
+        $house = Validator::string($data['house'] ?? null, 'house', 0, 60, false);
+        $dateOfBirth = array_key_exists('date_of_birth', $data)
+            ? Validator::date($data['date_of_birth'], 'date_of_birth', false)
+            : ($admission['date_of_birth'] ?: null);
+        $gender = array_key_exists('gender', $data)
+            ? Validator::enum($data['gender'], 'gender', ['male', 'female'], false)
+            : ($admission['gender'] ?: null);
+        $admittedOn = Validator::date($data['admitted_on'] ?? null, 'admitted_on', false)
+            ?? date('Y-m-d');
+
+        $studentUuid = Uuid::v4();
+        Database::transaction(static function () use (
+            $admission,
+            $studentUuid,
+            $admissionNo,
+            $firstName,
+            $lastName,
+            $dateOfBirth,
+            $gender,
+            $class,
+            $house,
+            $admittedOn
+        ): void {
+            $studentId = Database::insert(
+                'INSERT INTO students
+                    (uuid, admission_no, first_name, last_name, date_of_birth, gender,
+                     class_id, house, status, admitted_on)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [
+                    $studentUuid,
+                    $admissionNo,
+                    $firstName,
+                    $lastName,
+                    $dateOfBirth,
+                    $gender,
+                    (int) $class['id'],
+                    $house,
+                    'active',
+                    $admittedOn,
+                ]
+            );
+
+            Database::execute(
+                "UPDATE admission_applications SET status = 'enrolled', student_id = ? WHERE id = ?",
+                [$studentId, (int) $admission['id']]
+            );
+        });
+
+        Audit::record('admission.enrolled', 'admission', $uuid, [
+            'student' => $studentUuid,
+            'admission_no' => $admissionNo,
+            'class' => $class['name'],
+        ], (int) $user['id']);
+
+        $fresh = Database::fetch(
+            'SELECT * FROM admission_applications WHERE id = ?',
+            [(int) $admission['id']]
+        );
+        if ($fresh === null) {
+            throw HttpException::server('The enrolled application could not be reloaded.');
+        }
+
+        Response::ok(self::presentAdmission($fresh), 201);
     }
 
     public static function subscribers(): never
@@ -800,6 +910,15 @@ final class AdminController
         return is_scalar($value) ? (string) $value : null;
     }
 
+    /** @return array{0: string, 1: string} */
+    private static function splitApplicantName(string $name): array
+    {
+        $parts = preg_split('/\s+/', trim($name)) ?: [];
+        $first = (string) array_shift($parts);
+
+        return [$first, implode(' ', $parts)];
+    }
+
     private static function generateAdmissionNo(): string
     {
         $year = date('Y');
@@ -819,10 +938,30 @@ final class AdminController
 
     private static function presentAdmission(array $row): array
     {
+        $student = null;
+        if (!empty($row['student_id'])) {
+            $linked = Database::fetch(
+                'SELECT s.uuid, s.first_name, s.last_name, s.admission_no, c.name AS class_name
+                 FROM students s
+                 INNER JOIN classes c ON c.id = s.class_id
+                 WHERE s.id = ? LIMIT 1',
+                [(int) $row['student_id']]
+            );
+            if ($linked !== null) {
+                $student = [
+                    'id' => $linked['uuid'],
+                    'name' => trim($linked['first_name'] . ' ' . $linked['last_name']),
+                    'admission_no' => $linked['admission_no'],
+                    'class' => $linked['class_name'],
+                ];
+            }
+        }
+
         return [
             'id' => $row['uuid'],
             'applicant' => $row['applicant_name'],
             'guardian' => $row['guardian_name'],
+            'student' => $student,
             'email' => $row['email'],
             'phone' => $row['phone'],
             'level' => $row['level'],

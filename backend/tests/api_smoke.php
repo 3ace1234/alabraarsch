@@ -7,10 +7,12 @@ declare(strict_types=1);
  *
  * Usage: php backend/tests/api_smoke.php
  * Requires the API to be served by Apache/XAMPP and demo data to be installed.
- * The test is read-only apart from creating and destroying its own sessions.
+ * It creates only temporary records and removes them before finishing.
  */
 
+use AlFalaah\Core\Database;
 use AlFalaah\Core\Env;
+use AlFalaah\Core\Uuid;
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
@@ -308,11 +310,109 @@ try {
             422,
             'admin: invalid subscriber status rejected'
         );
+        Database::execute('DELETE FROM newsletter_subscribers WHERE email = ?', [$newsletterEmail]);
     }
     expects($admin->get('/admin/teachers'), 200, 'admin: teacher list');
     $terms = expects($admin->get('/terms'), 200, 'admin: term list');
     $classes = expects($admin->get('/classes'), 200, 'admin: class list');
     expects($admin->get('/subjects'), 200, 'admin: subject list');
+
+    // Admission-to-student workflow: use throwaway applications so the seeded
+    // pipeline is untouched, then remove the created student afterwards.
+    $enrollClass = $classes['data'][0] ?? null;
+    foreach ($classes['data'] ?? [] as $classroom) {
+        if (($classroom['level'] ?? null) === 'primary') {
+            $enrollClass = $classroom;
+            break;
+        }
+    }
+    check($enrollClass !== null && isset($enrollClass['id']), 'admin: class available for enrollment');
+
+    $tempAdmissionUuid = Uuid::v4();
+    $tempAdmissionId = Database::insert(
+        "INSERT INTO admission_applications
+            (uuid, applicant_name, guardian_name, email, phone, level, status, notes)
+         VALUES (?, ?, ?, ?, ?, 'primary', 'offer', ?)",
+        [
+            $tempAdmissionUuid,
+            'Smoke Test Applicant',
+            'Smoke Test Guardian',
+            'smoke-admission@example.com',
+            '+234 800 000 0000',
+            'Temporary record created by the API smoke test.',
+        ]
+    );
+
+    expects(
+        $student->post(
+            '/admin/admissions/' . rawurlencode($tempAdmissionUuid) . '/enroll',
+            ['class_id' => $enrollClass['id']]
+        ),
+        403,
+        'student: cannot enroll an admission'
+    );
+
+    $enrolled = expects(
+        $admin->post(
+            '/admin/admissions/' . rawurlencode($tempAdmissionUuid) . '/enroll',
+            ['class_id' => $enrollClass['id']]
+        ),
+        201,
+        'admin: admission enrolled as student'
+    );
+    check(($enrolled['data']['status'] ?? null) === 'enrolled', 'admin: enrollment updates admission status');
+    $enrolledStudentId = $enrolled['data']['student']['id'] ?? null;
+    check(is_string($enrolledStudentId), 'admin: enrollment links the student record');
+
+    expects(
+        $admin->post(
+            '/admin/admissions/' . rawurlencode($tempAdmissionUuid) . '/enroll',
+            ['class_id' => $enrollClass['id']]
+        ),
+        409,
+        'admin: duplicate enrollment rejected'
+    );
+    expects(
+        $admin->patch('/admin/admissions/' . rawurlencode($tempAdmissionUuid), ['status' => 'enrolled']),
+        422,
+        'admin: direct enrolled status rejected'
+    );
+
+    $register = expects($admin->get('/admin/students?per_page=100'), 200, 'admin: refreshed student register');
+    $listed = false;
+    foreach ($register['data'] ?? [] as $studentRow) {
+        if (($studentRow['id'] ?? null) === $enrolledStudentId) {
+            $listed = true;
+            break;
+        }
+    }
+    check($listed, 'admin: enrolled student appears in the register');
+
+    $validationUuid = Uuid::v4();
+    $validationId = Database::insert(
+        "INSERT INTO admission_applications
+            (uuid, applicant_name, guardian_name, email, phone, level, status, notes)
+         VALUES (?, ?, ?, ?, ?, 'primary', 'offer', ?)",
+        [
+            $validationUuid,
+            'Smoke Validation Applicant',
+            'Smoke Validation Guardian',
+            'smoke-admission-validation@example.com',
+            '+234 800 000 0001',
+            'Temporary record created by the API smoke test.',
+        ]
+    );
+    expects(
+        $admin->post('/admin/admissions/' . rawurlencode($validationUuid) . '/enroll', (object) []),
+        422,
+        'admin: enrollment requires a class'
+    );
+
+    Database::execute('DELETE FROM admission_applications WHERE id = ?', [$validationId]);
+    Database::execute('DELETE FROM admission_applications WHERE id = ?', [$tempAdmissionId]);
+    if (is_string($enrolledStudentId)) {
+        Database::execute('DELETE FROM students WHERE uuid = ?', [$enrolledStudentId]);
+    }
 
     $currentTerm = null;
     foreach ($terms['data'] ?? [] as $term) {

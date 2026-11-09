@@ -61,6 +61,16 @@ $tableExists = static function (PDO $pdo, string $table) use ($database): bool {
     return (int) $statement->fetchColumn() > 0;
 };
 
+$constraintExists = static function (PDO $pdo, string $table, string $constraint) use ($database): bool {
+    $statement = $pdo->prepare(
+        'SELECT COUNT(*) FROM information_schema.table_constraints
+         WHERE table_schema = ? AND table_name = ? AND constraint_name = ?'
+    );
+    $statement->execute([$database, $table, $constraint]);
+
+    return (int) $statement->fetchColumn() > 0;
+};
+
 try {
     $columns = [
         'class_label' => 'ALTER TABLE admission_applications ADD COLUMN class_label VARCHAR(60) NULL AFTER level',
@@ -77,6 +87,27 @@ try {
 
         $pdo->exec($sql);
         echo "  - admission_applications.{$column}: added\n";
+    }
+
+    if ($columnExists($pdo, 'admission_applications', 'student_id')) {
+        echo "  - admission_applications.student_id: already present\n";
+    } else {
+        $pdo->exec(
+            'ALTER TABLE admission_applications
+             ADD COLUMN student_id BIGINT UNSIGNED NULL AFTER guardian_name'
+        );
+        echo "  - admission_applications.student_id: added\n";
+    }
+
+    if ($constraintExists($pdo, 'admission_applications', 'fk_admissions_student')) {
+        echo "  - admission_applications.fk_admissions_student: already present\n";
+    } else {
+        $pdo->exec(
+            'ALTER TABLE admission_applications
+             ADD CONSTRAINT fk_admissions_student FOREIGN KEY (student_id)
+             REFERENCES students (id) ON DELETE SET NULL ON UPDATE CASCADE'
+        );
+        echo "  - admission_applications.fk_admissions_student: added\n";
     }
 
     if ($tableExists($pdo, 'contact_messages')) {

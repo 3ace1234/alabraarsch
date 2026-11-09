@@ -372,6 +372,7 @@ exists.
 | POST | `/admin/terms/{id}/publish` | admin + CSRF | Publish all approved sheets for a term |
 | GET | `/admin/admissions` | admin | Paginated admission enquiries |
 | PATCH | `/admin/admissions/{id}` | admin + CSRF | Update admission status or notes |
+| POST | `/admin/admissions/{id}/enroll` | admin + CSRF | Convert an offer into an active student record |
 | GET | `/admin/messages` | admin | Paginated contact inbox |
 | PATCH | `/admin/messages/{id}` | admin + CSRF | Update contact message status |
 | GET | `/admin/subscribers` | admin | Paginated newsletter subscriber list |
@@ -386,6 +387,21 @@ exists.
 
 Use query parameters `term_id` and `class_id` as UUIDs. Omit `term_id` to use the
 current term. `page` is 1-based and `per_page` is bounded by the endpoint.
+
+### Admission to student workflow
+
+Once a family accepts an offer, enroll the application from the admission dialog
+in the admin dashboard. `POST /admin/admissions/{id}/enroll` creates the student
+record, links it to the application, and marks the application `enrolled` in one
+transaction. Supply `class_id`; `first_name`, `last_name`, `admission_no`,
+`date_of_birth`, `gender`, `house` and `admitted_on` are optional overrides.
+Names default from the applicant name, the date of birth and gender default from
+the application, and a new admission number is generated when none is supplied.
+Enrolling an application twice, or editing an application straight to `enrolled`,
+is rejected so the link cannot be bypassed.
+
+Enrollment creates the student record only. Portal sign-in accounts are not
+provisioned by this endpoint.
 
 ## Results workflow
 
