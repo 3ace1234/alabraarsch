@@ -13,6 +13,7 @@ use AlFalaah\Core\Response;
 use AlFalaah\Core\Uuid;
 use AlFalaah\Core\Validator;
 use AlFalaah\Services\Academics;
+use AlFalaah\Services\AccountSecurity;
 use AlFalaah\Services\Announcements;
 use AlFalaah\Services\Fees;
 use AlFalaah\Services\Notifications;
@@ -441,7 +442,7 @@ final class AdminController
                     'account_email' => 'That email belongs to another portal account.',
                 ]);
             }
-            $temporaryPassword = self::temporaryPassword();
+            $temporaryPassword = AccountSecurity::temporaryPassword();
         }
 
         $createGuardianAccount = Validator::boolean(
@@ -499,7 +500,7 @@ final class AdminController
                 $guardianAccount = [
                     'user_id' => $existingGuardian !== null ? (int) $existingGuardian['id'] : null,
                     'email' => $guardianEmail,
-                    'temporary_password' => $existingGuardian === null ? self::temporaryPassword() : null,
+                    'temporary_password' => $existingGuardian === null ? AccountSecurity::temporaryPassword() : null,
                     'created' => $existingGuardian === null,
                     'first_name' => (string) $guardianFirst,
                     'last_name' => $guardianLast,
@@ -1025,6 +1026,67 @@ final class AdminController
         Response::noContent();
     }
 
+    /**
+     * Issues a one-time password for any portal account. Used for school-issued
+     * student addresses, which cannot receive self-service reset email, and as
+     * an office fallback when a family loses access to their inbox.
+     */
+    public static function resetUserPassword(array $params): never
+    {
+        $admin = Auth::requireRole('admin');
+        $uuid = Validator::uuid($params['id'] ?? null, 'id');
+
+        $target = Database::fetch(
+            'SELECT id, uuid, email, role, status FROM users WHERE uuid = ? LIMIT 1',
+            [$uuid]
+        );
+        if ($target === null) {
+            throw HttpException::notFound('That portal account was not found.');
+        }
+        if ((int) $target['id'] === (int) $admin['id']) {
+            throw HttpException::validation(
+                'Use the profile menu to change your own password.',
+                ['user' => 'An administrator cannot reset their own password here.']
+            );
+        }
+
+        $temporaryPassword = AccountSecurity::temporaryPassword();
+
+        Database::transaction(static function () use ($target, $temporaryPassword): void {
+            Database::execute(
+                'UPDATE users
+                 SET password_hash = ?, password_changed_at = NOW(),
+                     two_factor_enabled = 0, two_factor_secret = NULL
+                 WHERE id = ?',
+                [password_hash($temporaryPassword, PASSWORD_DEFAULT), (int) $target['id']]
+            );
+            Database::execute(
+                'DELETE FROM login_attempts WHERE email = ?',
+                [(string) $target['email']]
+            );
+            Database::execute(
+                'UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL',
+                [(int) $target['id']]
+            );
+        });
+
+        Audit::record('user.password_reset', 'user', $target['uuid'], [
+            'role' => $target['role'],
+            'two_factor_disabled' => true,
+        ], (int) $admin['id']);
+
+        Response::ok([
+            'user' => [
+                'id' => $target['uuid'],
+                'email' => $target['email'],
+                'role' => $target['role'],
+                'status' => $target['status'],
+            ],
+            'temporary_password' => $temporaryPassword,
+            'two_factor_disabled' => true,
+        ]);
+    }
+
     private static function sheet(string $uuid): array
     {
         $sheet = Results::findSheetByUuid($uuid);
@@ -1097,32 +1159,6 @@ final class AdminController
         }
 
         return $candidate;
-    }
-
-    private static function temporaryPassword(): string
-    {
-        $lower = 'abcdefghjkmnpqrstuvwxyz';
-        $upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-        $digits = '23456789';
-        $symbols = '@#$%&*!';
-        $all = $lower . $upper . $digits . $symbols;
-        $chars = [
-            $upper[random_int(0, strlen($upper) - 1)],
-            $lower[random_int(0, strlen($lower) - 1)],
-            $digits[random_int(0, strlen($digits) - 1)],
-            $symbols[random_int(0, strlen($symbols) - 1)],
-        ];
-
-        for ($index = 0; $index < 8; $index++) {
-            $chars[] = $all[random_int(0, strlen($all) - 1)];
-        }
-
-        for ($index = count($chars) - 1; $index > 0; $index--) {
-            $swap = random_int(0, $index);
-            [$chars[$index], $chars[$swap]] = [$chars[$swap], $chars[$index]];
-        }
-
-        return implode('', $chars);
     }
 
     private static function generateAdmissionNo(): string

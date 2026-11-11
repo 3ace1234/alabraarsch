@@ -138,7 +138,7 @@
                       </div>
                       <div class="flex flex--between flex--wrap flex--center mt-2">
                         <span class="small" style="color:var(--color-text-muted);">Sessions expire automatically when idle.</span>
-                        <a href="contact.html" style="font-size:.9rem;">Login help</a>
+                        <span class="small"><a href="forgot-password.html" style="font-size:.9rem;">Forgot password?</a> &middot; <a href="contact.html" style="font-size:.9rem;">Login help</a></span>
                       </div>
                       <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In</button>
                       <p class="form-msg" role="status"></p>
@@ -163,7 +163,7 @@
                       </div>
                       <div class="flex flex--between flex--wrap flex--center mt-2">
                         <span class="small" style="color:var(--color-text-muted);">Sessions expire automatically when idle.</span>
-                        <a href="contact.html" style="font-size:.9rem;">Login help</a>
+                        <span class="small"><a href="forgot-password.html" style="font-size:.9rem;">Forgot password?</a> &middot; <a href="contact.html" style="font-size:.9rem;">Login help</a></span>
                       </div>
                       <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In</button>
                       <p class="form-msg" role="status"></p>
@@ -188,9 +188,31 @@
                       </div>
                       <div class="flex flex--between flex--wrap flex--center mt-2">
                         <span class="small" style="color:var(--color-text-muted);">Sessions expire automatically when idle.</span>
-                        <a href="contact.html" style="font-size:.9rem;">Login help</a>
+                        <span class="small"><a href="forgot-password.html" style="font-size:.9rem;">Forgot password?</a> &middot; <a href="contact.html" style="font-size:.9rem;">Login help</a></span>
                       </div>
                       <button class="btn btn--gold mt-3" type="submit" style="width:100%;"><i data-lucide="log-in"></i> Sign In</button>
+                      <p class="form-msg" role="status"></p>
+                    </form>
+                  </div>
+
+                  <div id="panelTwoFactor" class="login-panel" aria-live="polite">
+                    <div class="demo-notice">
+                      <i data-lucide="mail-check"></i>
+                      <span>We emailed a six-digit code to <strong data-2fa-email>your address</strong>. Enter it below to finish signing in.</span>
+                    </div>
+                    <form data-two-factor-form novalidate>
+                      <div class="form-grid" style="grid-template-columns:1fr;">
+                        <div class="field">
+                          <label for="tfCode">Sign-in code</label>
+                          <input id="tfCode" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" required>
+                        </div>
+                      </div>
+                      <p class="small" data-2fa-timer style="color:var(--color-text-muted);"></p>
+                      <button class="btn btn--primary mt-3" type="submit" style="width:100%;"><i data-lucide="shield-check"></i> Verify code</button>
+                      <div class="flex flex--between flex--wrap flex--center mt-2">
+                        <button class="btn btn--ghost btn--sm" type="button" data-2fa-resend><i data-lucide="refresh-cw"></i> Resend code</button>
+                        <button class="btn btn--ghost btn--sm" type="button" data-2fa-cancel>Use another account</button>
+                      </div>
                       <p class="form-msg" role="status"></p>
                     </form>
                   </div>
@@ -302,8 +324,8 @@
   <button class="to-top" id="toTop" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="js/api.js?v=2"></script>
+  <script src="js/api.js?v=3"></script>
   <script src="js/main.js?v=6"></script>
-  <script src="js/portal.js?v=1"></script>
+  <script src="js/portal.js?v=2"></script>
 </body>
 </html>

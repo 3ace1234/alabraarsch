@@ -161,9 +161,70 @@
       method: "POST",
       body: { email: email, password: password }
     });
-    API.user = payload && payload.data ? payload.data.user : null;
     API.bootstrapped = true;
-    return API.user;
+
+    var data = payload && payload.data ? payload.data : {};
+    if (data.two_factor_required) {
+      // The password was accepted but the session is not authenticated yet.
+      API.user = null;
+    } else {
+      API.user = data.user || null;
+    }
+
+    return data;
+  };
+
+  API.verifyTwoFactor = async function (code) {
+    var payload = await request("/auth/2fa/verify", {
+      method: "POST",
+      body: { code: String(code || "") }
+    });
+    var data = payload && payload.data ? payload.data : {};
+    API.user = data.user || null;
+    API.bootstrapped = true;
+    return data;
+  };
+
+  API.resendTwoFactor = async function () {
+    var payload = await request("/auth/2fa/resend", { method: "POST", body: {} });
+    return payload && payload.data ? payload.data : {};
+  };
+
+  API.cancelTwoFactor = async function () {
+    await request("/auth/2fa/cancel", { method: "POST", body: {} });
+  };
+
+  API.forgotPassword = async function (email) {
+    if (!API.bootstrapped) await bootstrap();
+    var payload = await request("/auth/forgot-password", {
+      method: "POST",
+      body: { email: email }
+    });
+    return payload && payload.data ? payload.data : {};
+  };
+
+  API.resetPassword = async function (token, password, confirmation) {
+    if (!API.bootstrapped) await bootstrap();
+    var payload = await request("/auth/reset-password", {
+      method: "POST",
+      body: {
+        token: token,
+        password: password,
+        password_confirmation: confirmation
+      }
+    });
+    return payload && payload.data ? payload.data : {};
+  };
+
+  API.twoFactorSettings = async function (enabled, currentPassword) {
+    if (!API.bootstrapped) await bootstrap();
+    var body = { enabled: !!enabled };
+    if (currentPassword) body.current_password = currentPassword;
+
+    var payload = await request("/auth/two-factor", { method: "POST", body: body });
+    var data = payload && payload.data ? payload.data : {};
+    if (data.user) API.user = data.user;
+    return data;
   };
 
   API.logout = async function () {

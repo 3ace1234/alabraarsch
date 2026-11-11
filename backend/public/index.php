@@ -146,6 +146,11 @@ $router = new Router();
 $router->get('/api/health', [HealthController::class, 'show'], ['auth' => false]);
 $router->get('/api/session', [AuthController::class, 'session'], ['auth' => false]);
 $router->post('/api/auth/login', [AuthController::class, 'login'], ['auth' => false]);
+$router->post('/api/auth/forgot-password', [AuthController::class, 'forgotPassword'], ['auth' => false]);
+$router->post('/api/auth/reset-password', [AuthController::class, 'resetPassword'], ['auth' => false]);
+$router->post('/api/auth/2fa/verify', [AuthController::class, 'verifyTwoFactor'], ['auth' => false]);
+$router->post('/api/auth/2fa/resend', [AuthController::class, 'resendTwoFactor'], ['auth' => false]);
+$router->post('/api/auth/2fa/cancel', [AuthController::class, 'cancelTwoFactor'], ['auth' => false]);
 $router->post('/api/admissions', [IntakeController::class, 'admission'], ['auth' => false]);
 $router->post('/api/contact', [IntakeController::class, 'contact'], ['auth' => false]);
 $router->post('/api/newsletter', [IntakeController::class, 'newsletter'], ['auth' => false]);
@@ -153,6 +158,7 @@ $router->post('/api/newsletter', [IntakeController::class, 'newsletter'], ['auth
 $router->post('/api/auth/logout', [AuthController::class, 'logout']);
 $router->get('/api/auth/me', [AuthController::class, 'me']);
 $router->post('/api/auth/password', [AuthController::class, 'changePassword']);
+$router->post('/api/auth/two-factor', [AuthController::class, 'twoFactorSettings']);
 
 $router->get('/api/dashboard', [DashboardController::class, 'show']);
 $router->get('/api/terms', [ReferenceController::class, 'terms']);
@@ -213,5 +219,6 @@ $router->get('/api/admin/timetable', [AdminController::class, 'timetable'], ['ro
 $router->post('/api/admin/timetable', [AdminController::class, 'createTimetableSlot'], ['roles' => ['admin']]);
 $router->delete('/api/admin/timetable/{id}', [AdminController::class, 'deleteTimetableSlot'], ['roles' => ['admin']]);
 $router->get('/api/admin/teachers', [ReferenceController::class, 'teachers'], ['roles' => ['admin']]);
+$router->post('/api/admin/users/{id}/reset-password', [AdminController::class, 'resetUserPassword'], ['roles' => ['admin']]);
 
 $router->dispatch(Request::method(), $path);

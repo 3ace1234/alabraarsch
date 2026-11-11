@@ -52,8 +52,10 @@ want to keep. Use `--no-seed` to apply the schema without demo data.
 `php backend/scripts/migrate.php` upgrades an existing database without dropping
 it. It is idempotent, so it is safe to run more than once. It requires
 `DB_ADMIN_USERNAME` and `DB_ADMIN_PASSWORD` from `.env` because it alters table
-definitions, then adds the admission columns used by the website form and creates
-the `contact_messages` and `newsletter_subscribers` tables when either is missing:
+definitions, then adds the admission columns and the `users.two_factor_enabled`
+and `users.two_factor_secret` columns used by sign-in, and creates the
+`contact_messages`, `newsletter_subscribers` and `password_resets` tables when
+any is missing:
 
 ```bash
 php backend/scripts/migrate.php
@@ -129,6 +131,61 @@ backend/
   `Referrer-Policy`, `Content-Security-Policy`, `Cache-Control: no-store` and an
   `X-Request-Id` for log correlation.
 - Keep `.env` out of version control. `.gitignore` already excludes it.
+
+### Password recovery
+
+`POST /auth/forgot-password` always answers with the same generic message, so it
+cannot be used to find out whether an address belongs to an account. A reset
+token is only issued for active staff and parent accounts:
+
+- Student addresses at `@student.alfalaah.edu.ng` are placeholders that cannot
+  receive mail. The school office resets those accounts from the dashboard.
+- The raw token is 32 random bytes and is sent only in the reset link. The
+  database stores its SHA-256 hash in `password_resets`, never the token itself.
+- Links expire after 60 minutes and are single use. Requesting a new link marks
+  any earlier unused link for that account as used.
+- Limits are three requests per account and twelve per IP per rolling hour. Over
+  the limit the endpoint still returns the generic message.
+- The reset link is built from `PORTAL_URL`, for example
+  `http://localhost/alabraarsch/frontend/reset-password.html?token=...`. If
+  `PORTAL_URL` is missing the request is logged and no link is sent, but the
+  response does not change.
+- A successful reset updates `password_changed_at`, which signs out other
+  sessions for that account, and clears failed sign-in attempts for the email.
+
+Administrators can issue a one-time password with
+`POST /admin/users/{id}/reset-password`. It works for any role, disables email
+code verification for the account, invalidates pending reset links, and returns
+the temporary password once. It is recorded in the audit log without the
+password. Administrators cannot reset their own account through this endpoint.
+
+### Email code verification (2FA)
+
+Email code verification is optional and available to `admin`, `teacher` and
+`parent` accounts. Users enable or disable it from the profile menu, which calls
+`POST /auth/two-factor`:
+
+- Enabling needs only an authenticated session. A random per-user secret is
+  generated and stored in `users.two_factor_secret`; the API never returns it.
+- Disabling requires the current password.
+- The code is six digits derived from the per-user secret with an HMAC and a
+  five-minute time step. Because it is derived rather than stored, a resend
+  produces the same code for the current window and no code is written to the
+  database or audit log.
+- Sign-in with 2FA returns `two_factor_required: true`, a masked email, the
+  remaining seconds and the resend delay instead of a session. The password step
+  rotates the session ID before the challenge, and the challenge expires after
+  ten minutes.
+- `POST /auth/2fa/verify` allows five attempts. `POST /auth/2fa/resend` is
+  throttled to one request every thirty seconds; `POST /auth/2fa/cancel` clears
+  the pending challenge.
+- Completing the challenge applies the normal sign-in rotation, audit entry and
+  `last_login_at` update.
+
+The reset and code emails use the same `MAIL_*` transport described below. The
+mailer skips RFC 2606/6761 reserved domains (`example.com`, `.test`, `.invalid`,
+`.localhost` and similar), so demo and smoke-test accounts never trigger real
+delivery or bounces.
 
 ### CSRF flow for the frontend
 
@@ -243,6 +300,12 @@ All paths are relative to `/api`. `auth` means a signed-in session is required.
 | POST | `/auth/logout` | auth + CSRF | End the session |
 | GET | `/auth/me` | auth | Current user and CSRF token |
 | POST | `/auth/password` | auth + CSRF | Change the current password |
+| POST | `/auth/forgot-password` | public + CSRF | Request a password reset link (generic response) |
+| POST | `/auth/reset-password` | public + CSRF | Consume a reset token and set a new password |
+| POST | `/auth/2fa/verify` | public + CSRF | Complete a pending email-code challenge |
+| POST | `/auth/2fa/resend` | public + CSRF | Re-send the current code within the resend window |
+| POST | `/auth/2fa/cancel` | public + CSRF | Abandon the pending challenge |
+| POST | `/auth/two-factor` | auth + CSRF | Enable or disable email code verification |
 | POST | `/admissions` | public + CSRF | Submit a website admission application |
 | POST | `/contact` | public + CSRF | Submit a website contact message |
 | POST | `/newsletter` | public + CSRF | Subscribe an email to school updates |
@@ -384,6 +447,7 @@ exists.
 | POST | `/admin/timetable` | admin + CSRF | Add a timetable slot |
 | DELETE | `/admin/timetable/{id}` | admin + CSRF | Remove a timetable slot |
 | GET | `/admin/teachers` | admin | Active teacher reference list |
+| POST | `/admin/users/{id}/reset-password` | admin + CSRF | Issue a one-time password for any portal account |
 
 Use query parameters `term_id` and `class_id` as UUIDs. Omit `term_id` to use the
 current term. `page` is 1-based and `per_page` is bounded by the endpoint.
@@ -454,7 +518,11 @@ php backend/scripts/test_mail.php you@example.com
 
 The smoke test signs in as each role, checks dashboards and role restrictions,
 verifies student, parent, teacher and admin endpoints, and confirms that the
-session ends after logout. Override the target with:
+session ends after logout. It also exercises the admission-to-student and
+guardian-account workflows plus password reset, email-code sign-in, two-factor
+settings and administrator resets using throwaway `@example.com` accounts. A
+preflight sweep removes records left behind by an interrupted run, and the suite
+deletes its own records before finishing. Override the target with:
 
 ```bash
 API_SMOKE_BASE_URL=http://localhost/alabraarsch/backend/api php backend/tests/api_smoke.php

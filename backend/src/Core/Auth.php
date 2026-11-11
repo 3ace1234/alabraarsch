@@ -25,7 +25,8 @@ final class Auth
 
         $row = Database::fetch(
             'SELECT u.id, u.uuid, u.email, u.password_hash, u.role, u.first_name, u.last_name,
-                    u.phone, u.status, u.password_changed_at, u.last_login_at,
+                    u.phone, u.status, u.password_changed_at, u.two_factor_enabled, u.two_factor_secret,
+                    u.last_login_at,
                     s.uuid AS student_uuid, s.admission_no, s.class_id,
                     c.uuid AS class_uuid, c.name AS class_name, c.level AS class_level
              FROM users u
@@ -156,6 +157,13 @@ final class Auth
             'phone' => $user['phone'],
             'status' => $user['status'],
             'last_login_at' => $user['last_login_at'],
+            'two_factor' => [
+                'available' => in_array((string) ($user['role'] ?? ''), ['admin', 'teacher', 'parent'], true),
+                'enabled' => in_array((string) ($user['role'] ?? ''), ['admin', 'teacher', 'parent'], true)
+                    && !empty($user['two_factor_enabled'])
+                    && is_string($user['two_factor_secret'] ?? null)
+                    && $user['two_factor_secret'] !== '',
+            ],
             'student' => $student,
         ];
     }

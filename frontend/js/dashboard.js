@@ -751,6 +751,7 @@
     cfg.shortName = user.first_name || cfg.userName;
     cfg.initials = user.initials || "";
     cfg.email = user.email || "";
+    cfg.twoFactor = user.two_factor || { available: false, enabled: false };
 
     ANNOUNCEMENTS = normalizeAnnouncements(data.announcements);
     cfg.notifications = normalizeNotifications(data.notifications);
@@ -1073,6 +1074,11 @@
         '<div class="menu-link menu-link--static"><i data-lucide="shield-check"></i> ' + esc(cfg.label) + " account</div>" +
         '<div class="menu-sep"></div>' +
         '<button class="menu-link menu-link--button" type="button" data-change-password><i data-lucide="key-round"></i> Change password</button>' +
+        (cfg.twoFactor && cfg.twoFactor.available
+          ? '<button class="menu-link menu-link--button" type="button" data-two-factor-settings><i data-lucide="shield-check"></i> Email code verification' +
+            (cfg.twoFactor.enabled ? ' <span class="status status--ok">On</span>' : ' <span class="status status--info">Off</span>') +
+            "</button>"
+          : "") +
         '<a class="menu-link" href="index.html"><i data-lucide="globe"></i> Back to website</a>' +
         '<a class="menu-link menu-link--danger" href="portal.html" data-logout><i data-lucide="log-out"></i> Sign out</a>' +
       "</div>";
@@ -1427,6 +1433,13 @@
       event.preventDefault();
       closeAllPopovers();
       openChangePasswordDialog();
+      return;
+    }
+
+    if (event.target.closest("[data-two-factor-settings]")) {
+      event.preventDefault();
+      closeAllPopovers();
+      openTwoFactorDialog();
       return;
     }
 
@@ -3077,6 +3090,7 @@
 
     if (action === "student-create") return openStudentDialog(null);
     if (action === "student-edit") return openStudentDialog(findById(ADMIN.students, id));
+    if (action === "reset-password") return resetPortalPassword(id, button.getAttribute("data-name") || "");
     if (action === "announcement-create") return openAnnouncementDialog(null);
     if (action === "announcement-edit") return openAnnouncementDialog(findById(DATA.adminAnnouncements, id));
     if (action === "announcement-archive") return archiveAdminAnnouncement(id);
@@ -3090,6 +3104,51 @@
       return openTimetableDialog(button.getAttribute("data-day"), button.getAttribute("data-period"));
     }
     if (action === "timetable-delete") return deleteTimetableSlot(id);
+  }
+
+  async function resetPortalPassword(userId, name) {
+    if (!window.confirm(
+      "Reset the sign-in password for " + (name || "this account") + "?\n\n" +
+      "A one-time password will be shown once and any email-code verification on the account will be turned off."
+    )) return;
+
+    try {
+      var payload = await API.post(
+        "/admin/users/" + encodeURIComponent(userId) + "/reset-password",
+        {}
+      );
+      var data = payload && payload.data ? payload.data : null;
+      if (data) showAdminResetDialog(data, name);
+    } catch (error) {
+      if (API.isAuthError(error)) return handleAuthFailure();
+      toast(API.message(error));
+    }
+  }
+
+  function showAdminResetDialog(data, name) {
+    var portalUrl = new URL("portal.html", window.location.href).href;
+    var account = data.user || {};
+    var label = name || account.email || "Portal account";
+    var copyText = "Al-Falaah School portal\n" +
+      "Account: " + label + "\n" +
+      "Email: " + (account.email || "") + "\n" +
+      "Temporary password: " + (data.temporary_password || "") + "\n" +
+      "Sign in: " + portalUrl;
+
+    var body =
+      '<div class="admin-facts">' +
+        "<div><span>Account</span><strong>" + esc(label) + "</strong></div>" +
+        "<div><span>Sign-in email</span><strong>" + esc(account.email || "") + "</strong></div>" +
+        "<div><span>Temporary password</span><strong class=\"temp-password\">" + esc(data.temporary_password || "") + "</strong></div>" +
+        "<div><span>Portal</span><strong>" + esc(portalUrl) + "</strong></div>" +
+      "</div>" +
+      '<p class="admin-note">This password is shown only once. Email code verification was turned off for the account; ask the user to change the password and re-enable verification from the profile menu after signing in.</p>' +
+      '<div class="form-actions">' +
+        '<button class="btn btn--primary" type="button" data-copy-account="' + esc(copyText) + '"><i data-lucide="copy"></i> Copy details</button>' +
+        '<button class="btn btn--ghost" type="button" data-admin-dialog-close>Done</button>' +
+      "</div>";
+
+    openAdminDialog("Password reset", "One-time sign-in details", body);
   }
 
   function studentFormBody(form) {
@@ -3123,6 +3182,20 @@
           password_confirmation: data.password_confirmation
         });
         toast("Password updated. Use the new password next time you sign in.");
+      } else if (kind === "two-factor") {
+        var enableTwoFactor = data.enabled === "true";
+        var security = await API.twoFactorSettings(
+          enableTwoFactor,
+          enableTwoFactor ? null : data.current_password
+        );
+        var roleConfig = ROLES[state.role];
+        if (security.user && security.user.two_factor) {
+          roleConfig.twoFactor = security.user.two_factor;
+        }
+        toast(enableTwoFactor
+          ? "Email code verification is on. Your next sign-in will ask for a code."
+          : "Email code verification is off.");
+        afterSave = openTwoFactorDialog;
       } else if (kind === "student-create" || kind === "student-edit") {
         var studentBody = studentFormBody(form);
         if (kind === "student-create") {
@@ -3281,7 +3354,13 @@
         esc(student.level || classroom.level_label || "\u2014"),
         esc(account.email || "No portal account"),
         statusPill(statusLabel(student.status), student.status === "active" ? "ok" : "info"),
-        '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="student-edit" data-id="' + esc(student.id) + '">Edit</button>'
+        '<div class="row-actions">' +
+          '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="student-edit" data-id="' + esc(student.id) + '">Edit</button>' +
+          (account.id
+            ? '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="reset-password" data-id="' +
+              esc(account.id) + '" data-name="' + esc(student.name) + '">Reset login</button>'
+            : "") +
+        "</div>"
       ];
     });
 
@@ -3352,7 +3431,14 @@
 
   function adminStaffView() {
     var rows = ADMIN.teachers.map(function (teacher) {
-      return ['<div class="cell-person"><strong>' + esc(teacher.name) + "</strong><span>Teaching staff</span></div>", esc(teacher.email)];
+      return [
+        '<div class="cell-person"><strong>' + esc(teacher.name) + "</strong><span>Teaching staff</span></div>",
+        esc(teacher.email),
+        '<div class="row-actions">' +
+          '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="reset-password" data-id="' +
+          esc(teacher.id) + '" data-name="' + esc(teacher.name) + '">Reset login</button>' +
+        "</div>"
+      ];
     });
 
     return pageHead({
@@ -3371,7 +3457,7 @@
       title: "Teaching staff",
       sub: "Names and staff email addresses",
       body: rows.length
-        ? table([{ label: "Teacher" }, { label: "Email" }], rows, "Teaching staff")
+        ? table([{ label: "Teacher" }, { label: "Email" }, { label: "Action", align: "right" }], rows, "Teaching staff")
         : emptyState("id-card", "No staff records", "Teaching staff will appear here once accounts are created.")
     });
   }
@@ -4031,6 +4117,41 @@
     );
 
     openAdminDialog("Change password", "Account security", body);
+  }
+
+  function openTwoFactorDialog() {
+    var cfg = ROLES[state.role] || {};
+    var security = cfg.twoFactor || { available: false, enabled: false };
+    var enabled = !!security.enabled;
+    var body;
+
+    if (enabled) {
+      body = adminForm(
+        "two-factor",
+        adminField(
+          "Current password",
+          adminInput("current_password", "password", "", 'autocomplete="current-password" maxlength="72" required'),
+          true
+        ) +
+          '<p class="admin-note field full">Enter your password to stop asking for an emailed six-digit code when you sign in.</p>',
+        "Turn off verification",
+        '<input type="hidden" name="enabled" value="false">'
+      );
+    } else {
+      body = adminForm(
+        "two-factor",
+        '<p class="admin-note field full"><strong>Optional extra check at sign-in.</strong> When this is on, we email a six-digit code to <strong>' +
+          esc(cfg.email || "your address") +
+          "</strong> after your password is accepted. The code expires in 10 minutes and can only be used once.</p>",
+        "Turn on verification",
+        '<input type="hidden" name="enabled" value="true">'
+      );
+    }
+
+    body += '<p class="admin-note">Status: ' + (enabled ? "On" : "Off") +
+      ". Student accounts and school-issued student addresses are not eligible for emailed codes.</p>";
+
+    openAdminDialog("Email code verification", "Account security", body);
   }
 
   function showPortalAccountDialog(accounts) {

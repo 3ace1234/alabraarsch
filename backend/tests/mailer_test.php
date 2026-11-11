@@ -86,6 +86,30 @@ try {
 }
 check($threw, 'invalid sender rejected');
 
+// RFC 2606 / RFC 6761 reserved domains can never receive mail, so demo
+// addresses and smoke-test users must not produce transport attempts.
+$before = (int) filesize($path);
+$skipped = Mailer::send([
+    'to' => ['parent@example.com', 'office@test.invalid', 'staff@school.example.com'],
+    'subject' => 'Reserved recipients only',
+    'text' => 'This message must not be written.',
+]);
+check($skipped === false, 'reserved recipient domains are skipped');
+$entry = substr((string) file_get_contents($path), $before);
+check(!str_contains($entry, 'Reserved recipients only'), 'skipped message writes no log entry');
+
+$before = (int) filesize($path);
+Mailer::send([
+    'to' => ['parent@example.com', 'office@test.local'],
+    'subject' => 'Mixed recipients',
+    'text' => 'Delivered to the allowed recipient.',
+]);
+$entry = substr((string) file_get_contents($path), $before);
+check(
+    str_contains($entry, 'To: office@test.local') && !str_contains($entry, 'parent@example.com'),
+    'reserved recipients are filtered from mixed lists'
+);
+
 // Restore the storage log to its original state.
 if ($original === null) {
     @unlink($path);

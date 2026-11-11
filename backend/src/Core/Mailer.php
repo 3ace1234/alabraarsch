@@ -37,6 +37,16 @@ final class Mailer
         }
 
         $message = self::normalise($message);
+        $message['to'] = array_values(array_filter(
+            $message['to'],
+            static fn (string $address): bool => !self::isReservedDomain($address)
+        ));
+        if ($message['to'] === []) {
+            // RFC 2606 / RFC 6761 reserved names can never receive mail.
+            // Skipping them keeps demo accounts and smoke tests from bouncing.
+            Logger::info('Mail skipped: all recipients use reserved domains.');
+            return false;
+        }
 
         match ($driver) {
             'smtp' => self::smtp($message),
@@ -240,6 +250,33 @@ final class Mailer
             'from_name' => self::safeHeader((string) ($message['from_name'] ?? Env::get('MAIL_FROM_NAME', 'Al-Falaah School'))),
             'reply_to' => $replyTo !== '' ? $replyTo : null,
         ];
+    }
+
+    private static function isReservedDomain(string $address): bool
+    {
+        $at = strrpos($address, '@');
+        $domain = $at === false ? '' : strtolower(rtrim(substr($address, $at + 1), '.'));
+        if ($domain === '') {
+            return false;
+        }
+
+        if ($domain === 'localhost' || $domain === 'example' || $domain === 'invalid' || $domain === 'test') {
+            return true;
+        }
+
+        foreach (['example.com', 'example.net', 'example.org'] as $reserved) {
+            if ($domain === $reserved || str_ends_with($domain, '.' . $reserved)) {
+                return true;
+            }
+        }
+
+        foreach (['.example', '.invalid', '.test', '.localhost'] as $suffix) {
+            if (str_ends_with($domain, $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function safeHeader(string $value): string

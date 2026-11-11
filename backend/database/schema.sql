@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone               VARCHAR(30)     NULL,
     status              ENUM('active','suspended','inactive') NOT NULL DEFAULT 'active',
     password_changed_at DATETIME        NULL,
+    two_factor_enabled  TINYINT(1)      NOT NULL DEFAULT 0,
+    two_factor_secret   CHAR(64)        NULL,
     last_login_at       DATETIME        NULL,
     created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -446,6 +448,21 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     KEY idx_audit_action_date (action, created_at),
     KEY idx_audit_entity (entity_type, entity_uuid),
     CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS password_resets (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id    BIGINT UNSIGNED NOT NULL,
+    token_hash CHAR(64)        NOT NULL,
+    ip         VARCHAR(45)     NULL,
+    expires_at DATETIME        NOT NULL,
+    used_at    DATETIME        NULL,
+    created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_password_resets_token (token_hash),
+    KEY idx_password_resets_user (user_id, expires_at),
+    CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS login_attempts (

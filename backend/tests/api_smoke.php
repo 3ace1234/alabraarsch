@@ -13,6 +13,7 @@ declare(strict_types=1);
 use AlFalaah\Core\Database;
 use AlFalaah\Core\Env;
 use AlFalaah\Core\Uuid;
+use AlFalaah\Services\AccountSecurity;
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
@@ -129,6 +130,46 @@ function baseUrl(): string
     return rtrim(Env::get('APP_URL', 'http://localhost/alabraarsch/backend/public'), '/') . '/api';
 }
 
+/**
+ * Removes records left behind by an interrupted run so the suite can be
+ * retried without reusing a half-created guardian or student account.
+ */
+function cleanSmokeData(): void
+{
+    $emails = [
+        'smoke-newsletter@example.com',
+        'smoke-admission@example.com',
+        'smoke-admission-validation@example.com',
+        'smoke-auth-teacher@example.com',
+    ];
+    $placeholders = implode(', ', array_fill(0, count($emails), '?'));
+
+    $users = Database::fetchAll(
+        "SELECT id FROM users
+         WHERE email IN ({$placeholders})
+            OR email LIKE 'smoke.%@student.alfalaah.edu.ng'",
+        $emails
+    );
+
+    foreach ($users as $user) {
+        Database::execute('DELETE FROM students WHERE user_id = ?', [(int) $user['id']]);
+    }
+
+    if ($users !== []) {
+        $ids = array_map(static fn (array $user): int => (int) $user['id'], $users);
+        $idList = implode(', ', array_fill(0, count($ids), '?'));
+        Database::execute("DELETE FROM audit_logs WHERE user_id IN ({$idList})", $ids);
+        Database::execute("DELETE FROM users WHERE id IN ({$idList})", $ids);
+    }
+
+    foreach ($emails as $email) {
+        Database::execute('DELETE FROM login_attempts WHERE email = ?', [$email]);
+    }
+    Database::execute("DELETE FROM login_attempts WHERE email LIKE 'smoke.%@student.alfalaah.edu.ng'");
+    Database::execute("DELETE FROM admission_applications WHERE email IN ({$placeholders})", $emails);
+    Database::execute('DELETE FROM newsletter_subscribers WHERE email = ?', ['smoke-newsletter@example.com']);
+}
+
 function check(bool $condition, string $label, ?string $detail = null): void
 {
     if ($condition) {
@@ -162,6 +203,34 @@ function signIn(string $base, string $email, string $password, string $role): Ap
     return $client;
 }
 
+function signInWithTwoFactor(
+    string $base,
+    string $email,
+    string $password,
+    string $secret,
+    string $role
+): ApiClient {
+    $client = new ApiClient($base);
+    expects($client->get('/session'), 200, "{$role}: two-factor session bootstrap");
+
+    $challenge = expects($client->post('/auth/login', [
+        'email' => $email,
+        'password' => $password,
+    ]), 200, "{$role}: two-factor password step");
+    check(
+        ($challenge['data']['two_factor_required'] ?? false) === true,
+        "{$role}: two-factor challenge issued"
+    );
+
+    $body = expects($client->post('/auth/2fa/verify', [
+        'code' => AccountSecurity::twoFactorCode($secret),
+    ]), 200, "{$role}: two-factor code accepted");
+    check(($body['data']['user']['role'] ?? null) === $role, "{$role}: role returned after two-factor");
+    check(is_string($body['data']['csrf_token'] ?? null), "{$role}: CSRF token rotated after two-factor");
+
+    return $client;
+}
+
 $base = baseUrl();
 $password = Env::get('DEMO_PASSWORD', '');
 
@@ -174,6 +243,8 @@ echo "Al-Falaah API smoke test\n";
 echo "Base: {$base}\n\n";
 
 try {
+    cleanSmokeData();
+
     $anonymous = new ApiClient($base);
     expects($anonymous->get('/health', false), 200, 'public: health');
     expects($anonymous->get('/dashboard', false), 401, 'anonymous: dashboard is protected');
@@ -196,6 +267,7 @@ try {
     check(($subscription['data']['subscribed'] ?? false) === true, 'anonymous: newsletter subscription flag');
 
     $student = signIn($base, 'aisha.abdullahi@student.alfalaah.edu.ng', $password, 'student');
+    $studentUuid = (string) ($student->user['id'] ?? '');
     $dashboard = expects($student->get('/dashboard'), 200, 'student: dashboard');
     check(($dashboard['data']['role'] ?? null) === 'student', 'student: dashboard role');
     check(($dashboard['data']['stats']['class_size'] ?? 0) > 0, 'student: class size present');
@@ -278,6 +350,7 @@ try {
     expects($teacher->get('/admin/overview'), 403, 'teacher: cannot open admin overview');
 
     $admin = signIn($base, 'h.sanni@alfalaah.edu.ng', $password, 'admin');
+    $adminUuid = (string) ($admin->user['id'] ?? '');
     $adminDashboard = expects($admin->get('/admin/overview'), 200, 'admin: overview');
     check(($adminDashboard['data']['role'] ?? null) === 'admin', 'admin: overview role');
     expects($admin->get('/admin/students?per_page=3'), 200, 'admin: student list');
@@ -451,6 +524,308 @@ try {
         expects($newGuardian->post('/auth/logout'), 204, 'new guardian: logout');
     }
 
+    // ---------------------------------------------------------------------
+    // Account security: password resets, email-code 2FA and office resets.
+    // Throwaway users use @example.com so the mailer skips delivery.
+    // ---------------------------------------------------------------------
+    $authEmail = 'smoke-auth-teacher@example.com';
+    $authPassword = 'SmokeAuth@2026';
+    $resetPassword = 'SmokeAuth@2027';
+    $authSecret = AccountSecurity::newTwoFactorSecret();
+
+    Database::execute('DELETE FROM login_attempts WHERE email = ?', [$authEmail]);
+    Database::execute('DELETE FROM users WHERE email = ?', [$authEmail]);
+    $authUserId = Database::insert(
+        "INSERT INTO users
+            (uuid, email, password_hash, role, first_name, last_name, status, two_factor_enabled, two_factor_secret)
+         VALUES (?, ?, ?, 'teacher', 'Smoke', 'Secured', 'active', 1, ?)",
+        [Uuid::v4(), $authEmail, password_hash($authPassword, PASSWORD_DEFAULT), $authSecret]
+    );
+    $authUserUuid = (string) Database::fetchValue('SELECT uuid FROM users WHERE id = ?', [$authUserId]);
+
+    // Reset requests answer identically whether or not the address exists, and
+    // school-issued student inboxes fall back to an office reset.
+    $genericReset = expects(
+        $anonymous->post('/auth/forgot-password', ['email' => 'smoke-missing@example.com']),
+        200,
+        'reset: unknown email receives the generic response'
+    );
+    check(
+        str_contains((string) ($genericReset['data']['message'] ?? ''), 'reset link'),
+        'reset: the generic response explains the next step'
+    );
+    expects(
+        $anonymous->post('/auth/forgot-password', ['email' => 'aisha.abdullahi@student.alfalaah.edu.ng']),
+        200,
+        'reset: student addresses are handled by the office'
+    );
+
+    $issued = expects(
+        $anonymous->post('/auth/forgot-password', ['email' => $authEmail]),
+        200,
+        'reset: staff request is accepted'
+    );
+    check(
+        ($issued['data']['message'] ?? null) === ($genericReset['data']['message'] ?? null),
+        'reset: responses do not reveal whether an account exists'
+    );
+
+    $resetRow = Database::fetch(
+        'SELECT id, token_hash, used_at FROM password_resets WHERE user_id = ? ORDER BY id DESC LIMIT 1',
+        [$authUserId]
+    );
+    check(is_array($resetRow), 'reset: the request stores a reset record');
+    check(
+        is_string($resetRow['token_hash'] ?? null)
+            && preg_match('/^[a-f0-9]{64}$/', $resetRow['token_hash']) === 1,
+        'reset: only the token hash is stored'
+    );
+    check(($resetRow['used_at'] ?? null) === null, 'reset: the issued token is unused');
+
+    // The raw token only travels by email, so inject a known token into the
+    // same record to exercise the consumption path without an inbox.
+    $resetToken = AccountSecurity::resetToken();
+    Database::execute(
+        'UPDATE password_resets SET token_hash = ? WHERE id = ?',
+        [AccountSecurity::hashToken($resetToken), (int) $resetRow['id']]
+    );
+
+    expects(
+        $anonymous->post('/auth/reset-password', [
+            'token' => str_repeat('a', 64),
+            'password' => $resetPassword,
+            'password_confirmation' => $resetPassword,
+        ]),
+        400,
+        'reset: an unknown token is rejected'
+    );
+    expects(
+        $anonymous->post('/auth/reset-password', [
+            'token' => $resetToken,
+            'password' => $resetPassword,
+            'password_confirmation' => $resetPassword . 'x',
+        ]),
+        422,
+        'reset: a mismatched confirmation is rejected'
+    );
+    expects(
+        $anonymous->post('/auth/reset-password', [
+            'token' => $resetToken,
+            'password' => $authPassword,
+            'password_confirmation' => $authPassword,
+        ]),
+        422,
+        'reset: reusing the current password is rejected'
+    );
+    expects(
+        $anonymous->post('/auth/reset-password', [
+            'token' => $resetToken,
+            'password' => $resetPassword,
+            'password_confirmation' => $resetPassword,
+        ]),
+        200,
+        'reset: a valid token sets a new password'
+    );
+    expects(
+        $anonymous->post('/auth/reset-password', [
+            'token' => $resetToken,
+            'password' => 'SmokeAuth@2028',
+            'password_confirmation' => 'SmokeAuth@2028',
+        ]),
+        400,
+        'reset: a token cannot be used twice'
+    );
+
+    $storedHash = (string) Database::fetchValue('SELECT password_hash FROM users WHERE id = ?', [$authUserId]);
+    check(
+        $storedHash !== $resetPassword && password_verify($resetPassword, $storedHash),
+        'reset: the new password is stored as a hash'
+    );
+
+    // Two-factor sign-in for the same staff account.
+    $twoFactorClient = new ApiClient($base);
+    expects($twoFactorClient->get('/session'), 200, '2fa: session bootstrap');
+    $challenge = expects(
+        $twoFactorClient->post('/auth/login', ['email' => $authEmail, 'password' => $resetPassword]),
+        200,
+        '2fa: the password step succeeds'
+    );
+    check(($challenge['data']['two_factor_required'] ?? false) === true, '2fa: a code challenge is issued');
+    check(
+        !isset($challenge['data']['user']) && !isset($challenge['data']['two_factor_secret']),
+        '2fa: the challenge does not expose the account or secret'
+    );
+    check(
+        is_string($challenge['data']['email'] ?? null)
+            && ($challenge['data']['email'] ?? '') !== $authEmail,
+        '2fa: the delivery address is masked'
+    );
+    check((int) ($challenge['data']['expires_in'] ?? 0) > 0, '2fa: the challenge expiry is advertised');
+
+    $wrongCode = AccountSecurity::twoFactorCode($authSecret) === '000000' ? '111111' : '000000';
+    $rejected = expects(
+        $twoFactorClient->post('/auth/2fa/verify', ['code' => $wrongCode]),
+        401,
+        '2fa: an incorrect code is rejected'
+    );
+    check(
+        ($rejected['error']['code'] ?? null) === 'two_factor_invalid',
+        '2fa: the rejection reports an invalid code'
+    );
+    check(
+        (int) Database::fetchValue(
+            'SELECT COUNT(*) FROM login_attempts WHERE email = ? AND success = 0',
+            [$authEmail]
+        ) >= 1,
+        '2fa: an incorrect code counts as a failed attempt'
+    );
+    expects($twoFactorClient->post('/auth/2fa/resend'), 429, '2fa: resend is throttled');
+
+    $verified = expects(
+        $twoFactorClient->post('/auth/2fa/verify', ['code' => AccountSecurity::twoFactorCode($authSecret)]),
+        200,
+        '2fa: the emailed code completes sign-in'
+    );
+    check(($verified['data']['user']['role'] ?? null) === 'teacher', '2fa: the signed-in account is returned');
+    check(
+        ($verified['data']['user']['two_factor']['enabled'] ?? false) === true,
+        '2fa: the account reports verification enabled'
+    );
+    check(
+        !isset($verified['data']['user']['two_factor_secret']),
+        '2fa: the secret is never exposed'
+    );
+    check(
+        (int) Database::fetchValue(
+            'SELECT COUNT(*) FROM login_attempts WHERE email = ? AND success = 0',
+            [$authEmail]
+        ) === 0,
+        '2fa: a successful sign-in clears failed attempts'
+    );
+    expects($twoFactorClient->get('/dashboard'), 200, '2fa: the session is authenticated');
+    expects(
+        $twoFactorClient->post('/auth/2fa/verify', ['code' => AccountSecurity::twoFactorCode($authSecret)]),
+        401,
+        '2fa: the challenge cannot be replayed'
+    );
+    expects($twoFactorClient->post('/auth/logout'), 204, '2fa: logout');
+
+    // Two-factor settings: disabling needs the password, enabling does not.
+    $secured = signInWithTwoFactor($base, $authEmail, $resetPassword, $authSecret, 'teacher');
+    expects(
+        $secured->post('/auth/two-factor', ['enabled' => false]),
+        422,
+        '2fa settings: disabling requires the current password'
+    );
+    expects(
+        $secured->post('/auth/two-factor', [
+            'enabled' => false,
+            'current_password' => 'WrongPassword@1',
+        ]),
+        422,
+        '2fa settings: the wrong password cannot disable verification'
+    );
+    $disabled = expects(
+        $secured->post('/auth/two-factor', [
+            'enabled' => false,
+            'current_password' => $resetPassword,
+        ]),
+        200,
+        '2fa settings: verification can be disabled with the password'
+    );
+    check(
+        ($disabled['data']['user']['two_factor']['enabled'] ?? true) === false,
+        '2fa settings: the disabled state is returned'
+    );
+    expects($secured->post('/auth/logout'), 204, '2fa settings: logout');
+
+    $plain = signIn($base, $authEmail, $resetPassword, 'teacher');
+    check(
+        ($plain->user['two_factor']['enabled'] ?? true) === false,
+        '2fa settings: password-only sign-in works after disabling'
+    );
+    $enabled = expects(
+        $plain->post('/auth/two-factor', ['enabled' => true]),
+        200,
+        '2fa settings: verification can be enabled without a password'
+    );
+    check(
+        ($enabled['data']['user']['two_factor']['enabled'] ?? false) === true,
+        '2fa settings: the enabled state is returned'
+    );
+    $newSecret = (string) Database::fetchValue(
+        'SELECT two_factor_secret FROM users WHERE id = ?',
+        [$authUserId]
+    );
+    check(strlen($newSecret) === 64, '2fa settings: a per-user secret is generated');
+    check(
+        !isset($enabled['data']['user']['two_factor_secret']),
+        '2fa settings: the secret stays private'
+    );
+    expects($plain->post('/auth/logout'), 204, '2fa settings: final logout');
+
+    // Office reset: one-time password, two-factor cleared, never logged.
+    $adminReset = expects(
+        $admin->post('/admin/users/' . rawurlencode($authUserUuid) . '/reset-password'),
+        200,
+        'admin: resets a portal password'
+    );
+    $temporaryPassword = $adminReset['data']['temporary_password'] ?? null;
+    check(
+        is_string($temporaryPassword) && strlen($temporaryPassword) >= 12,
+        'admin: a temporary password is returned once'
+    );
+    check(
+        ($adminReset['data']['two_factor_disabled'] ?? false) === true,
+        'admin: the reset clears two-factor'
+    );
+    $afterReset = Database::fetch(
+        'SELECT password_hash, two_factor_enabled, two_factor_secret FROM users WHERE id = ?',
+        [$authUserId]
+    );
+    check(
+        (int) ($afterReset['two_factor_enabled'] ?? 1) === 0
+            && array_key_exists('two_factor_secret', (array) $afterReset)
+            && $afterReset['two_factor_secret'] === null,
+        'admin: two-factor is disabled in storage'
+    );
+    check(
+        password_verify((string) $temporaryPassword, (string) ($afterReset['password_hash'] ?? '')),
+        'admin: the temporary password is stored as a hash'
+    );
+    check(
+        !str_contains(json_encode($adminReset, JSON_THROW_ON_ERROR), 'password_hash'),
+        'admin: the response omits the password hash'
+    );
+    $auditRow = Database::fetch(
+        'SELECT meta FROM audit_logs WHERE action = ? AND entity_uuid = ? ORDER BY id DESC LIMIT 1',
+        ['user.password_reset', $authUserUuid]
+    );
+    check(
+        !is_array($auditRow)
+            || !str_contains((string) ($auditRow['meta'] ?? ''), (string) $temporaryPassword),
+        'admin: the audit log never stores the temporary password'
+    );
+
+    $officeClient = signIn($base, $authEmail, (string) $temporaryPassword, 'teacher');
+    expects($officeClient->post('/auth/logout'), 204, 'admin reset: the temporary password signs in');
+
+    expects(
+        $admin->post('/admin/users/' . rawurlencode($adminUuid) . '/reset-password'),
+        422,
+        'admin: cannot reset their own password'
+    );
+    expects(
+        $admin->post('/admin/users/' . rawurlencode(Uuid::v4()) . '/reset-password'),
+        404,
+        'admin: resetting an unknown account is rejected'
+    );
+    expects(
+        $student->post('/admin/users/' . rawurlencode($authUserUuid) . '/reset-password'),
+        403,
+        'student: cannot reset another password'
+    );
+
     $reuseUuid = Uuid::v4();
     $reuseId = Database::insert(
         "INSERT INTO admission_applications
@@ -520,6 +895,10 @@ try {
         Database::execute('DELETE FROM login_attempts WHERE email = ?', [$guardianAccount['email']]);
         Database::execute('DELETE FROM users WHERE email = ?', [$guardianAccount['email']]);
     }
+    Database::execute('DELETE FROM login_attempts WHERE email = ?', [$authEmail]);
+    Database::execute('DELETE FROM audit_logs WHERE entity_uuid = ?', [$authUserUuid]);
+    // password_resets rows disappear with the user through the cascade.
+    Database::execute('DELETE FROM users WHERE id = ?', [$authUserId]);
 
     $currentTerm = null;
     foreach ($terms['data'] ?? [] as $term) {

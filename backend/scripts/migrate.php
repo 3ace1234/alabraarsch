@@ -110,6 +110,43 @@ try {
         echo "  - admission_applications.fk_admissions_student: added\n";
     }
 
+    $userColumns = [
+        'two_factor_enabled' => 'ALTER TABLE users ADD COLUMN two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER password_changed_at',
+        'two_factor_secret' => 'ALTER TABLE users ADD COLUMN two_factor_secret CHAR(64) NULL AFTER two_factor_enabled',
+    ];
+
+    foreach ($userColumns as $column => $sql) {
+        if ($columnExists($pdo, 'users', $column)) {
+            echo "  - users.{$column}: already present\n";
+            continue;
+        }
+
+        $pdo->exec($sql);
+        echo "  - users.{$column}: added\n";
+    }
+
+    if ($tableExists($pdo, 'password_resets')) {
+        echo "  - password_resets: already present\n";
+    } else {
+        $pdo->exec(
+            'CREATE TABLE password_resets (
+                id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id    BIGINT UNSIGNED NOT NULL,
+                token_hash CHAR(64)        NOT NULL,
+                ip         VARCHAR(45)     NULL,
+                expires_at DATETIME        NOT NULL,
+                used_at    DATETIME        NULL,
+                created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_password_resets_token (token_hash),
+                KEY idx_password_resets_user (user_id, expires_at),
+                CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users (id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+        echo "  - password_resets: created\n";
+    }
+
     if ($tableExists($pdo, 'contact_messages')) {
         echo "  - contact_messages: already present\n";
     } else {
