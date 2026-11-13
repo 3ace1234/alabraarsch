@@ -2,8 +2,8 @@
 
 The repository has two separate parts:
 
-- `frontend/` — static HTML, CSS and JavaScript
-- `backend/` — PHP 8.4 API and MySQL schema
+- `frontend/`, static HTML, CSS and JavaScript
+- `backend/`, PHP 8.4 API and MySQL schema
 
 Vercel and GitHub Pages can host only the static frontend. They cannot execute
 the PHP API or provide MySQL.

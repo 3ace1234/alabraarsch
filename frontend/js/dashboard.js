@@ -1,5 +1,5 @@
 /* ============================================================
-   AL-FALAAH — PORTAL DASHBOARD
+   AL-FALAAH PORTAL DASHBOARD
    Vanilla JS, no build step. Every record rendered here comes
    from the authenticated JSON API; nothing is hard-coded.
    ============================================================ */
@@ -40,7 +40,7 @@
   }
 
   function splitTime(time) {
-    var parts = String(time).split("\u2013").map(function (p) { return p.trim(); });
+    var parts = String(time).split(/\s*(?:-|\bto\b)\s*/i).map(function (p) { return p.trim(); });
     return { start: parts[0] || time, end: parts[1] || "" };
   }
 
@@ -225,7 +225,7 @@
 
   function numberText(value, decimals) {
     var num = Number(value);
-    if (!Number.isFinite(num)) return "\u2014";
+    if (!Number.isFinite(num)) return "N/A";
     return num.toFixed(decimals === undefined ? 1 : decimals);
   }
 
@@ -248,7 +248,7 @@
   }
 
   function longDate(value) {
-    if (!value) return "\u2014";
+    if (!value) return "N/A";
     var date = new Date(String(value).replace(" ", "T"));
     if (Number.isNaN(date.getTime())) return String(value);
     return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -416,8 +416,8 @@
       initials: student.initials || ((first.charAt(0) + last.charAt(0)).toUpperCase() || "?"),
       klass: classroom.name || student.level || "Unassigned",
       level: classroom.level_label || student.level || "",
-      admissionNo: student.admission_no || "\u2014",
-      house: student.house || "\u2014",
+      admissionNo: student.admission_no || "N/A",
+      house: student.house || "N/A",
       formTeacher: student.form_teacher || "Not assigned",
       guardian: student.guardian || { name: "Not provided", relation: "", phone: "", email: "" },
       attendance: normalizeAttendance(extras.attendance),
@@ -433,7 +433,7 @@
     return (Array.isArray(list) ? list : []).map(function (item) {
       return {
         id: item.id,
-        day: item.day || "\u2014",
+        day: item.day || "N/A",
         month: item.month || "",
         date: item.date || "",
         tag: item.tag || "General",
@@ -543,7 +543,7 @@
       schedule: (Array.isArray(dash.schedule) ? dash.schedule : []).map(function (row) {
         return {
           period: "Period " + row.period,
-          time: row.time || (timeLabel(row.starts_at) + " \u2013 " + timeLabel(row.ends_at)),
+          time: row.time || (timeLabel(row.starts_at) + " to " + timeLabel(row.ends_at)),
           subject: row.subject ? row.subject.name : "",
           klass: row.class ? row.class.name : "",
           room: row.room || "",
@@ -576,9 +576,9 @@
     var tones = { submitted: "warn", approved: "ok", published: "ok", draft: "info", returned: "danger" };
     return {
       id: row.id,
-      klass: row.class ? row.class.name : "\u2014",
-      subject: row.subject ? row.subject.name : "\u2014",
-      teacher: row.teacher || "\u2014",
+      klass: row.class ? row.class.name : "N/A",
+      subject: row.subject ? row.subject.name : "N/A",
+      teacher: row.teacher || "N/A",
       submitted: row.submitted_at ? longDate(row.submitted_at) : "Not submitted",
       status: row.status_label || row.status || "Draft",
       tone: tones[row.status] || "info"
@@ -1015,7 +1015,7 @@
     if (termChip) {
       termChip.innerHTML = '<i data-lucide="calendar-days"></i> ' + esc(SCHOOL.label || SCHOOL.term || "Current term");
     }
-    document.title = cfg.label + " Dashboard \u2014 Al-Falaah School";
+    document.title = cfg.label + " Dashboard | Al-Falaah School";
   }
 
   function renderTabbar() {
@@ -1719,7 +1719,7 @@
 
     var action = f.balance > 0
       ? '<p class="small muted mt-1">Settle at the school accounts office or by bank transfer.</p>'
-      : '<p class="small muted mt-1">Fully paid \u2014 shukran.</p>';
+      : '<p class="small muted mt-1">Fully paid, shukran.</p>';
 
     return panel({
       title: "Fees & payments",
@@ -1768,8 +1768,8 @@
     var r = student.results;
     return [
       stat({ icon: "clipboard-check", label: "Attendance", value: student.attendance.rate + "%", meta: student.attendance.present + " of " + student.attendance.days + " school days" }),
-      stat({ icon: "trending-up", label: "Term average", value: r.average === null ? "\u2014" : numberText(r.average) + "%", meta: r.term }),
-      stat({ icon: "award", label: "Class position", value: r.position ? ordinal(r.position) : "\u2014", meta: r.classSize ? "of " + r.classSize + " students" : "Not published" }),
+      stat({ icon: "trending-up", label: "Term average", value: r.average === null ? "N/A" : numberText(r.average) + "%", meta: r.term }),
+      stat({ icon: "award", label: "Class position", value: r.position ? ordinal(r.position) : "N/A", meta: r.classSize ? "of " + r.classSize + " students" : "Not published" }),
       feeStat(student)
     ];
   }
@@ -2006,7 +2006,7 @@
         numberText(subject.ca),
         numberText(subject.exam),
         "<strong>" + numberText(subject.total, 0) + "</strong>",
-        '<span class="grade grade--' + String(subject.grade || "").toLowerCase() + '">' + esc(subject.grade || "\u2014") + "</span>",
+        '<span class="grade grade--' + String(subject.grade || "").toLowerCase() + '">' + esc(subject.grade || "N/A") + "</span>",
         esc(subject.remark || "")
       ];
     });
@@ -2023,7 +2023,7 @@
           ],
           rows,
           "Subject results for " + student.name
-        ) + '<p class="small muted mt-2">Grading scale: A 70\u2013100 \u00B7 B 60\u201369 \u00B7 C 50\u201359 \u00B7 D 45\u201349 \u00B7 E 40\u201344 \u00B7 F below 40.</p>'
+        ) + '<p class="small muted mt-2">Grading scale: A 70-100 \u00B7 B 60-69 \u00B7 C 50-59 \u00B7 D 45-49 \u00B7 E 40-44 \u00B7 F below 40.</p>'
       : emptyState("graduation-cap", "No published results", "Your report will appear here once the term results are approved and published.");
 
     return pageHead({
@@ -2035,8 +2035,8 @@
         '<button class="btn btn--gold" type="button" data-print><i data-lucide="printer"></i> Print report</button>'
     }) +
     statGrid([
-      stat({ icon: "trending-up", label: "Term average", value: r.average === null ? "\u2014" : numberText(r.average) + "%", meta: r.term }),
-      stat({ icon: "award", label: "Class position", value: r.position ? ordinal(r.position) : "\u2014", meta: r.classSize ? "of " + r.classSize + " students" : "Not published" }),
+      stat({ icon: "trending-up", label: "Term average", value: r.average === null ? "N/A" : numberText(r.average) + "%", meta: r.term }),
+      stat({ icon: "award", label: "Class position", value: r.position ? ordinal(r.position) : "N/A", meta: r.classSize ? "of " + r.classSize + " students" : "Not published" }),
       stat({ icon: "book-open", label: "Subjects offered", value: r.subjects.length, meta: "All assessed" }),
       stat({ icon: "check-circle-2", label: "Result status", value: r.published ? "Published" : "Pending", meta: r.published ? "Released " + r.published : "Awaiting publication" })
     ]) +
@@ -2130,9 +2130,9 @@
       '<table class="data-table timetable">' +
         '<caption class="sr-only">Weekly timetable for ' + esc(student.name) + ", " + esc(student.klass) + "</caption>" +
         "<thead><tr>" + head + "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
-      '<div class="tt-notes"><span><strong>Assembly</strong> 7:45\u20138:00</span>' +
-        "<span><strong>Break</strong> 10:00\u201310:20</span>" +
-        "<span><strong>Lunch</strong> 11:40\u201312:20</span>" +
+      '<div class="tt-notes"><span><strong>Assembly</strong> 7:45-8:00</span>' +
+        "<span><strong>Break</strong> 10:00-10:20</span>" +
+        "<span><strong>Lunch</strong> 11:40-12:20</span>" +
         "<span><strong>Close</strong> 1:00pm</span></div>";
   }
 
@@ -2209,7 +2209,7 @@
         '<div class="meter meter--on-dark"><span class="meter__fill" data-meter="' + pct + '"></span></div>' +
         '<p class="small" style="color:rgba(255,255,255,.78);">' + (f.balance > 0
           ? "Payments are receipted at the school accounts office or by bank transfer."
-          : "Fully paid \u2014 shukran.") + "</p>" +
+          : "Fully paid, shukran.") + "</p>" +
       "</div>" +
     "</section>" +
     '<div class="dash-grid dash-grid--2">' +
@@ -2293,7 +2293,7 @@
         esc(classroom.level_label || classroom.level || ""),
         String(asNumber(classroom.students)),
         classroom.average === null || classroom.average === undefined
-          ? '<span class="muted">\u2014</span>'
+          ? '<span class="muted">, </span>'
           : numberText(classroom.average) + "%"
       ];
     });
@@ -2601,7 +2601,7 @@
         esc(sheet.subject.name),
         statusPill(statusLabel(status, sheet.status_label), statusTone(status)),
         asNumber(sheet.entered) + " / " + asNumber(sheet.students),
-        sheet.submitted_at ? longDate(sheet.submitted_at) : '<span class="muted">\u2014</span>',
+        sheet.submitted_at ? longDate(sheet.submitted_at) : '<span class="muted">, </span>',
         '<button class="btn btn--ghost btn--sm" type="button" data-result-open data-sheet-id="' + esc(sheet.sheet_id || "") +
           '" data-class-id="' + esc(sheet.class.id) + '" data-subject-id="' + esc(sheet.subject.id) +
           '" data-status="' + esc(status) + '">' + actionLabel + "</button>"
@@ -2651,7 +2651,7 @@
       var total = student.ca_score !== null && student.ca_score !== undefined &&
         student.exam_score !== null && student.exam_score !== undefined
         ? numberText(asNumber(student.ca_score) + asNumber(student.exam_score), 2)
-        : "\u2014";
+        : "N/A";
 
       return {
         attrs: editable ? ' data-result-row data-student-id="' + esc(student.id) + '"' : "",
@@ -2660,7 +2660,7 @@
           editable ? scoreInput(student, "ca_score", 40) : numberText(student.ca_score),
           editable ? scoreInput(student, "exam_score", 60) : numberText(student.exam_score),
           '<strong data-row-total>' + total + "</strong>",
-          esc(student.grade || "\u2014"),
+          esc(student.grade || "N/A"),
           esc(student.remark || "")
         ]
       };
@@ -2799,7 +2799,7 @@
     var examValue = exam.value.trim();
     totalCell.textContent = caValue !== "" && examValue !== ""
       ? numberText(Number(caValue) + Number(examValue), 2)
-      : "\u2014";
+      : "N/A";
   }
 
   async function saveResultSheet(form) {
@@ -2842,7 +2842,7 @@
     });
 
     if (invalid) {
-      setFormMessage(form, "Enter a complete CA score (0\u201340) and exam score (0\u201360) for each student.");
+      setFormMessage(form, "Enter a complete CA score (0-40) and exam score (0-60) for each student.");
       return;
     }
     if (!records.length) {
@@ -3350,8 +3350,8 @@
       var account = student.account || {};
       return [
         '<div class="cell-person"><strong>' + esc(student.name) + "</strong><span>" + esc(student.admission_no) + "</span></div>",
-        esc(classroom.name || "\u2014"),
-        esc(student.level || classroom.level_label || "\u2014"),
+        esc(classroom.name || "N/A"),
+        esc(student.level || classroom.level_label || "N/A"),
         esc(account.email || "No portal account"),
         statusPill(statusLabel(student.status), student.status === "active" ? "ok" : "info"),
         '<div class="row-actions">' +
@@ -3475,7 +3475,7 @@
     var termRows = DATA.terms.map(function (term) {
       return [
         "<strong>" + esc(term.label || (term.name + ", " + (term.session ? term.session.name : ""))) + "</strong>",
-        longDate(term.starts_on) + " \u2013 " + longDate(term.ends_on),
+        longDate(term.starts_on) + " to " + longDate(term.ends_on),
         term.is_current ? statusPill("Current", "gold") : '<span class="muted">Closed</span>',
         term.results_published_at ? statusPill("Results published", "ok") : statusPill("Not published", "info")
       ];
@@ -3537,12 +3537,12 @@
   function adminAnnouncementsView() {
     var list = Array.isArray(DATA.adminAnnouncements) ? DATA.adminAnnouncements : [];
     var rows = list.map(function (item) {
-      var audienceText = (item.audiences || []).map(audienceLabel).join(", ") || "\u2014";
+      var audienceText = (item.audiences || []).map(audienceLabel).join(", ") || "N/A";
       return [
         '<div class="cell-person"><strong>' + esc(item.title) + "</strong><span>" + esc(item.tag || "General") + "</span></div>",
         esc(audienceText),
         statusPill(statusLabel(item.status), item.status === "published" ? "ok" : item.status === "archived" ? "info" : "warn"),
-        esc(item.author || "\u2014"),
+        esc(item.author || "N/A"),
         item.published_at ? longDate(item.published_at) : '<span class="muted">Not published</span>',
         '<div class="row-actions">' +
           '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="announcement-edit" data-id="' + esc(item.id) + '">Edit</button>' +
@@ -3682,7 +3682,7 @@
         '<dl class="admin-message__meta">' +
           "<div><dt>From</dt><dd>" + esc(message.name) + "</dd></div>" +
           "<div><dt>Email</dt><dd><a href=\"mailto:" + esc(message.email) + "\">" + esc(message.email) + "</a></dd></div>" +
-          "<div><dt>Phone</dt><dd>" + esc(message.phone || "\u2014") + "</dd></div>" +
+          "<div><dt>Phone</dt><dd>" + esc(message.phone || "N/A") + "</dd></div>" +
           "<div><dt>Received</dt><dd>" + longDate(message.created_at) + "</dd></div>" +
         "</dl>" +
         "<h3>" + esc(message.subject) + "</h3>" +
@@ -3712,7 +3712,7 @@
         '<div class="cell-person"><strong>' + esc(row.email) + "</strong><span>" +
           (row.source ? "Via " + esc(row.source) : "Website signup") + "</span></div>",
         statusPill(row.status_label || statusLabel(row.status), isActive ? "ok" : "info"),
-        esc(row.source ? row.source.replace(/^./, function (ch) { return ch.toUpperCase(); }) : "\u2014"),
+        esc(row.source ? row.source.replace(/^./, function (ch) { return ch.toUpperCase(); }) : "N/A"),
         longDate(row.created_at),
         '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="subscriber-toggle" data-id="' +
           esc(row.id) + '" data-status="' + esc(row.status) + '">' +
@@ -3925,11 +3925,11 @@
     var rows = admissions.map(function (row) {
       return [
         '<div class="cell-person"><strong>' + esc(row.applicant) + "</strong><span>" + esc(row.email) + "</span></div>",
-        esc(row.guardian || "\u2014"),
-        esc(row.level_label || row.level || "\u2014"),
+        esc(row.guardian || "N/A"),
+        esc(row.level_label || row.level || "N/A"),
         statusPill(row.status_label || statusLabel(row.status), admissionTone(row.status)),
         longDate(row.created_at),
-        esc(row.notes || "\u2014"),
+        esc(row.notes || "N/A"),
         '<button class="btn btn--ghost btn--sm" type="button" data-admin-action="admission-edit" data-id="' + esc(row.id) + '">Manage</button>'
       ];
     });
@@ -3969,23 +3969,23 @@
       { value: "declined", label: "Declined" }
     ];
     var facts = [
-      ["Guardian", admission.guardian || "\u2014"],
-      ["Email", admission.email || "\u2014"],
-      ["Phone", admission.phone || "\u2014"],
-      ["Level", admission.level_label || admission.level || "\u2014"],
-      ["Preferred class", admission.class_label || "\u2014"],
-      ["Date of birth", admission.date_of_birth ? longDate(admission.date_of_birth) : "\u2014"],
-      ["Gender", admission.gender ? statusLabel(admission.gender) : "\u2014"],
-      ["Previous school", admission.previous_school || "\u2014"],
+      ["Guardian", admission.guardian || "N/A"],
+      ["Email", admission.email || "N/A"],
+      ["Phone", admission.phone || "N/A"],
+      ["Level", admission.level_label || admission.level || "N/A"],
+      ["Preferred class", admission.class_label || "N/A"],
+      ["Date of birth", admission.date_of_birth ? longDate(admission.date_of_birth) : "N/A"],
+      ["Gender", admission.gender ? statusLabel(admission.gender) : "N/A"],
+      ["Previous school", admission.previous_school || "N/A"],
       ["Student record", admission.student
         ? admission.student.name + " (" + admission.student.admission_no + ", " + admission.student.class + ")"
         : (admission.status === "enrolled" ? "No linked student record" : "Not enrolled yet")],
       ["Portal account", admission.student
         ? (admission.student.account || "No sign-in account")
-        : "\u2014"],
+        : "N/A"],
       ["Guardian account", admission.student
         ? (admission.student.guardian_account || "No sign-in account")
-        : "\u2014"]
+        : "N/A"]
     ];
     var canEnroll = !admission.student && (admission.status === "offer" || admission.status === "enrolled");
     var callout = canEnroll
@@ -4167,7 +4167,7 @@
       var account = group[1];
       if (!account) return;
 
-      var password = account.temporary_password || "Existing account \u2014 password unchanged";
+      var password = account.temporary_password || "Existing account, password unchanged";
       rows +=
         "<div><span>" + esc(label) + "</span><strong>" + esc(account.name) + "</strong></div>" +
         "<div><span>" + esc(label) + " email</span><strong>" + esc(account.email) + "</strong></div>" +
@@ -4224,8 +4224,8 @@
 
     var invoiceRows = visibleInvoices.map(function (invoice) {
       return [
-        '<div class="cell-person"><strong>' + esc(invoice.student ? invoice.student.name : "\u2014") + "</strong><span>" + esc(invoice.ref) + "</span></div>",
-        esc(invoice.item || "\u2014"),
+        '<div class="cell-person"><strong>' + esc(invoice.student ? invoice.student.name : "N/A") + "</strong><span>" + esc(invoice.ref) + "</span></div>",
+        esc(invoice.item || "N/A"),
         money(invoice.amount),
         money(invoice.paid),
         money(invoice.balance),
@@ -4239,9 +4239,9 @@
 
     var paymentRows = payments.map(function (payment) {
       return [
-        '<div class="cell-person"><strong>' + esc(payment.student ? payment.student.name : "\u2014") + "</strong><span>" + esc(payment.ref) + "</span></div>",
+        '<div class="cell-person"><strong>' + esc(payment.student ? payment.student.name : "N/A") + "</strong><span>" + esc(payment.ref) + "</span></div>",
         money(payment.amount),
-        esc(payment.method || "\u2014"),
+        esc(payment.method || "N/A"),
         longDate(payment.paid_on)
       ];
     });
@@ -4356,10 +4356,10 @@
     var rows = sheets.map(function (sheet) {
       return [
         '<div class="cell-person"><strong>' + esc(sheet.class.name) + "</strong><span>" + esc(sheet.subject.name) + "</span></div>",
-        esc(sheet.teacher || "\u2014"),
+        esc(sheet.teacher || "N/A"),
         asNumber(sheet.entered) + " / " + asNumber(sheet.students),
         statusPill(statusLabel(sheet.status, sheet.status_label), statusTone(sheet.status)),
-        sheet.submitted_at ? longDate(sheet.submitted_at) : '<span class="muted">\u2014</span>',
+        sheet.submitted_at ? longDate(sheet.submitted_at) : '<span class="muted">, </span>',
         '<button class="btn btn--ghost btn--sm" type="button" data-result-open data-sheet-id="' + esc(sheet.id) +
           '" data-class-id="' + esc(sheet.class.id) + '" data-subject-id="' + esc(sheet.subject.id) +
           '" data-status="' + esc(sheet.status) + '">Review</button>'

@@ -1,8 +1,8 @@
-# AL-FALAAH TYPOGRAPHY SYSTEM — IMPLEMENTATION PROMPT
+# AL-FALAAH TYPOGRAPHY SYSTEM IMPLEMENTATION PROMPT
 
 Redesign the existing Al-Falaah website typography using a **refined editorial + modern educational** typographic system.
 
-The typography should feel **professional, elegant, warm, readable, and distinctive** — not like a generic AI-generated website.
+The typography should feel **professional, elegant, warm, readable, and distinctive**, not like a generic AI-generated website.
 
 ## 1. FONT SYSTEM
 
@@ -86,7 +86,7 @@ clamp(2rem, 4vw, 3.2rem)
 Approximately:
 
 ```text
-1.15rem – 1.4rem
+1.15rem to 1.4rem
 ```
 
 ### Body Text
@@ -94,7 +94,7 @@ Approximately:
 Approximately:
 
 ```text
-1rem – 1.1rem
+1rem to 1.1rem
 line-height: 1.7
 ```
 
@@ -103,7 +103,7 @@ line-height: 1.7
 Approximately:
 
 ```text
-0.8rem – 0.95rem
+0.8rem to 0.95rem
 ```
 
 Use `clamp()` where appropriate so typography scales naturally between screen sizes.
@@ -177,7 +177,7 @@ Avoid excessively wide text blocks.
 Target approximately:
 
 ```text
-60–75 characters per line
+60-75 characters per line
 ```
 
 for long-form reading where practical.
@@ -344,7 +344,7 @@ Do not scatter arbitrary font sizes throughout the CSS.
 
 ---
 
-## 13. IMPORTANT — AVOID GENERIC AI TYPOGRAPHY
+## 13. IMPORTANT: AVOID GENERIC AI TYPOGRAPHY
 
 Do NOT:
 

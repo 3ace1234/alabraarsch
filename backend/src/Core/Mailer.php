@@ -8,10 +8,10 @@ namespace AlFalaah\Core;
  * Dependency-free mail transport.
  *
  * Drivers:
- *   smtp — send through an SMTP server (STARTTLS, implicit TLS or plain)
- *   mail — hand the message to PHP's mail() transport
- *   log  — write a rendered .eml-style entry to storage/logs/mail.log
- *   none — disable outbound mail
+ *   smtp, send through an SMTP server (STARTTLS, implicit TLS or plain)
+ *   mail, hand the message to PHP's mail() transport
+ *   log, write a rendered .eml-style entry to storage/logs/mail.log
+ *   none, disable outbound mail
  *
  * Transport failures throw RuntimeException; callers decide whether the
  * surrounding workflow may continue (intake submissions always do).

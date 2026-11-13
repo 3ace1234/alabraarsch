@@ -1,4 +1,4 @@
-# AL-FALAAH COLOR SYSTEM — IMPLEMENTATION PROMPT
+# AL-FALAAH COLOR SYSTEM IMPLEMENTATION PROMPT
 
 Redesign the existing Al-Falaah Nursery, Primary & Secondary School website using the following **controlled color system**.
 
@@ -37,18 +37,18 @@ Do not introduce random additional colors unless required for accessibility, sys
 
 Follow approximately this visual distribution:
 
-**60% — Neutral backgrounds**
+**60%: Neutral backgrounds**
 
 * Warm Ivory
 * White
 
-**30% — Green family**
+**30%: Green family**
 
 * Forest Green
 * Deep Green
 * Soft Sage
 
-**10% — Gold accents**
+**10%: Gold accents**
 
 * Olive Gold
 * Warm Gold
@@ -59,7 +59,7 @@ The gold must remain an **accent**, not a dominant color.
 
 ## 3. HOW EACH COLOR SHOULD BE USED
 
-### Forest Green — `#0B4535`
+### Forest Green: `#0B4535`
 
 Use as the primary Al-Falaah brand color for:
 
@@ -71,7 +71,7 @@ Use as the primary Al-Falaah brand color for:
 * section accents
 * highlighted UI elements
 
-### Deep Green — `#06352A`
+### Deep Green: `#06352A`
 
 Use for:
 
@@ -82,7 +82,7 @@ Use for:
 * hero overlays
 * strong brand sections
 
-### Olive Gold — `#C6A24A`
+### Olive Gold: `#C6A24A`
 
 Use sparingly for:
 
@@ -94,7 +94,7 @@ Use sparingly for:
 * selected indicators
 * primary CTA backgrounds where appropriate
 
-### Warm Gold — `#D8B65A`
+### Warm Gold: `#D8B65A`
 
 Use mainly for:
 
@@ -105,7 +105,7 @@ Use mainly for:
 
 Do not use gold for large areas simply because the website is Islamic.
 
-### Warm Ivory — `#F7F4EA`
+### Warm Ivory: `#F7F4EA`
 
 Use as the main soft background for:
 
@@ -115,7 +115,7 @@ Use as the main soft background for:
 * page backgrounds
 * alternating sections
 
-### White — `#FFFFFF`
+### White: `#FFFFFF`
 
 Use for:
 
@@ -126,7 +126,7 @@ Use for:
 * dashboard panels
 * clean visual areas
 
-### Ink Charcoal — `#18231F`
+### Ink Charcoal: `#18231F`
 
 Use primarily for:
 
@@ -138,7 +138,7 @@ Use primarily for:
 
 Avoid using pure black `#000000` as the default text color.
 
-### Slate Green — `#5D6B64`
+### Slate Green: `#5D6B64`
 
 Use for:
 
@@ -149,7 +149,7 @@ Use for:
 * breadcrumbs
 * supporting information
 
-### Soft Sage — `#E7EEE9`
+### Soft Sage: `#E7EEE9`
 
 Use for:
 
@@ -159,11 +159,11 @@ Use for:
 * cards
 * information panels
 
-### Sand — `#EEE7D5`
+### Sand: `#EEE7D5`
 
 Use occasionally to introduce a warm secondary tone into selected sections.
 
-### Border Mist — `#DDE3DE`
+### Border Mist: `#DDE3DE`
 
 Use for:
 

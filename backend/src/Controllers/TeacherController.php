@@ -389,7 +389,7 @@ final class TeacherController
         $date = self::dateFromRequest($value);
 
         if ((int) date('N', strtotime($date)) > 5) {
-            throw HttpException::validation('Attendance is only recorded on school days (Monday–Friday).', [
+            throw HttpException::validation('Attendance is only recorded on school days (Monday-Friday).', [
                 'date' => 'Choose a weekday.',
             ]);
         }

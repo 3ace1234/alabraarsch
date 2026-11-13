@@ -33,17 +33,17 @@ final class IntakeNotifier
             'Reference:      ' . $reference,
             'Applicant:      ' . ($application['applicant_name'] ?? ''),
             'Guardian:       ' . ($application['guardian_name'] ?? ''),
-            'Phone:          ' . ($application['phone'] ?? '—'),
-            'Email:          ' . ($application['email'] ?? '—'),
+            'Phone:          ' . ($application['phone'] ?? 'N/A'),
+            'Email:          ' . ($application['email'] ?? 'N/A'),
             'Level:          ' . self::level($application['level'] ?? '')
-                . ' (' . ($application['class_label'] ?? '—') . ')',
-            'Date of birth:  ' . ($application['date_of_birth'] ?? '—'),
-            'Gender:         ' . ($application['gender'] ?? '—'),
-            'Previous school:' . ' ' . ($application['previous_school'] ?? '—'),
+                . ' (' . ($application['class_label'] ?? 'N/A') . ')',
+            'Date of birth:  ' . ($application['date_of_birth'] ?? 'N/A'),
+            'Gender:         ' . ($application['gender'] ?? 'N/A'),
+            'Previous school:' . ' ' . ($application['previous_school'] ?? 'N/A'),
             'Submitted:      ' . ($application['created_at'] ?? date('Y-m-d H:i:s')),
             '',
             'Notes:',
-            ($application['notes'] ?? '') !== '' ? (string) $application['notes'] : '—',
+            ($application['notes'] ?? '') !== '' ? (string) $application['notes'] : 'N/A',
         ];
 
         $portal = self::portalLink('admissions');
@@ -53,7 +53,7 @@ final class IntakeNotifier
             $lines[] = $portal;
         }
 
-        self::send($recipients, 'New admission application — ' . $reference, implode("\n", $lines), [
+        self::send($recipients, 'New admission application, ' . $reference, implode("\n", $lines), [
             'reference' => $reference,
             'type' => 'admission',
             'reply_to' => (string) ($application['email'] ?? ''),
@@ -75,8 +75,8 @@ final class IntakeNotifier
             '',
             'Reference: ' . $reference,
             'Name:      ' . ($message['name'] ?? ''),
-            'Email:     ' . ($message['email'] ?? '—'),
-            'Phone:     ' . ($message['phone'] ?? '—'),
+            'Email:     ' . ($message['email'] ?? 'N/A'),
+            'Phone:     ' . ($message['phone'] ?? 'N/A'),
             'Subject:   ' . ($message['subject'] ?? ''),
             'Received:  ' . ($message['created_at'] ?? date('Y-m-d H:i:s')),
             '',
@@ -93,7 +93,7 @@ final class IntakeNotifier
             $lines[] = $portal;
         }
 
-        self::send($recipients, 'Website message — ' . ($message['subject'] ?? $reference), implode("\n", $lines), [
+        self::send($recipients, 'Website message, ' . ($message['subject'] ?? $reference), implode("\n", $lines), [
             'reference' => $reference,
             'type' => 'contact',
             'reply_to' => (string) ($message['email'] ?? ''),
@@ -176,6 +176,6 @@ final class IntakeNotifier
 
     private static function level(string $level): string
     {
-        return $level === '' ? '—' : ucwords(str_replace('_', ' ', $level));
+        return $level === '' ? 'N/A' : ucwords(str_replace('_', ' ', $level));
     }
 }

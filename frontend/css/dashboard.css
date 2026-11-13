@@ -1,5 +1,5 @@
 /* ============================================================
-   AL-FALAAH — PORTAL DASHBOARD
+   AL-FALAAH PORTAL DASHBOARD
    Authenticated app shell for students, parents, teachers
    and administrators. Extends the public-site design system
    in style.css (same colour tokens, type and radii).
@@ -10,7 +10,7 @@
   --topbar-h: 72px;
   --dash-gap: 20px;
 
-  /* Feedback states — tints derived from the core palette */
+  /* Feedback states, tints derived from the core palette */
   --ok: #1c6b4f;
   --ok-bg: #e7f2ec;
   --warn: #8a5d12;
@@ -588,7 +588,7 @@
 .grade--f { background: var(--danger-bg); color: var(--danger); }
 
 /* ============================================================
-   LISTS — LESSONS, TASKS, ANNOUNCEMENTS
+   LISTS, LESSONS, TASKS, ANNOUNCEMENTS
    ============================================================ */
 .lesson-list { display: grid; }
 .lesson {

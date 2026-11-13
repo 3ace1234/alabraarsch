@@ -253,7 +253,7 @@ final class Timetable
 
     public static function timeLabel(string $start, string $end): string
     {
-        return self::clock($start) . ' – ' . self::clock($end);
+        return self::clock($start) . ' to ' . self::clock($end);
     }
 
     private static function clock(string $time): string

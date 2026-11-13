@@ -630,7 +630,7 @@ return static function (PDO $pdo, string $demoPassword): array {
                         $note = match ($status) {
                             'present' => 'Signed in at ' . sprintf('%d:%02d', 7 + (int) ($timeSeed % 2), 45 + (int) ($timeSeed % 15)),
                             'late' => 'Arrived at ' . sprintf('8:%02d', 5 + (int) ($timeSeed % 20)),
-                            'excused' => 'Authorised absence — guardian note received',
+                            'excused' => 'Authorised absence, guardian note received',
                             default => null,
                         };
 
@@ -766,8 +766,8 @@ return static function (PDO $pdo, string $demoPassword): array {
                 'published_at' => '2026-10-24 08:30:00',
             ],
             [
-                'title' => 'Parent–Teacher meeting',
-                'body' => 'Our termly Parent–Teacher meeting holds on Saturday, 7 November, from 9:00am to 1:00pm in the main hall. Reports and subject feedback will be shared.',
+                'title' => 'Parent-Teacher meeting',
+                'body' => 'Our termly Parent-Teacher meeting holds on Saturday, 7 November, from 9:00am to 1:00pm in the main hall. Reports and subject feedback will be shared.',
                 'category' => 'Academics',
                 'audiences' => ['parent', 'teacher', 'admin'],
                 'pinned' => 0,
@@ -868,22 +868,22 @@ return static function (PDO $pdo, string $demoPassword): array {
         $notify($aishaUserId, 'Mid-term break', 'School closes on 30 October and reopens on 9 November 2026.', 'announcement', '2026-10-24 09:00:00', false, $announcementIds[0]['uuid']);
         $notify($aishaUserId, 'Third Term results published', 'Your Third Term 2025/2026 result is ready to view.', 'result', '2026-10-20 09:30:00', true, $announcementIds[2]['uuid']);
         $notify($aishaUserId, 'Mathematics assignment due', 'Exercise 4B is due tomorrow. Submit it before assembly.', 'assignment', date('Y-m-d H:i:s', strtotime('-5 hours')), false);
-        $notify($aishaUserId, 'Parent–Teacher meeting', 'The termly Parent–Teacher meeting holds on 7 November.', 'announcement', '2026-10-21 14:30:00', true, $announcementIds[1]['uuid']);
+        $notify($aishaUserId, 'Parent-Teacher meeting', 'The termly Parent-Teacher meeting holds on 7 November.', 'announcement', '2026-10-21 14:30:00', true, $announcementIds[1]['uuid']);
 
         $notify($parentId, 'Fee balance for Yusuf', 'A balance of ₦25,000 remains on Yusuf’s First Term transport invoice.', 'fee', date('Y-m-d H:i:s', strtotime('-2 hours')), false);
         $notify($parentId, 'Mid-term break', 'School closes on 30 October and reopens on 9 November 2026.', 'announcement', '2026-10-24 09:00:00', false, $announcementIds[0]['uuid']);
-        $notify($parentId, 'Parent–Teacher meeting', 'Join us on Saturday, 7 November from 9:00am in the main hall.', 'announcement', '2026-10-21 14:30:00', false, $announcementIds[1]['uuid']);
+        $notify($parentId, 'Parent-Teacher meeting', 'Join us on Saturday, 7 November from 9:00am in the main hall.', 'announcement', '2026-10-21 14:30:00', false, $announcementIds[1]['uuid']);
         $notify($parentId, 'Third Term results published', 'Aisha and Yusuf’s Third Term results are now available.', 'result', '2026-10-20 09:30:00', true, $announcementIds[2]['uuid']);
 
         $notify($teacherIds['sulaiman'], 'Result entry deadline', 'Submit all First Term continuous assessment scores by 28 October.', 'announcement', '2026-10-19 11:30:00', false, $announcementIds[3]['uuid']);
         $notify($teacherIds['sulaiman'], 'Two registers pending', 'JSS 1A and JSS 3A attendance registers are still open for today.', 'attendance', date('Y-m-d H:i:s', strtotime('-1 hour')), false);
         $notify($teacherIds['sulaiman'], 'Mid-term break', 'School closes on 30 October and reopens on 9 November 2026.', 'announcement', '2026-10-24 09:00:00', true, $announcementIds[0]['uuid']);
-        $notify($teacherIds['sulaiman'], 'Parent–Teacher meeting', 'The termly meeting holds on 7 November from 9:00am.', 'announcement', '2026-10-21 14:30:00', true, $announcementIds[1]['uuid']);
+        $notify($teacherIds['sulaiman'], 'Parent-Teacher meeting', 'The termly meeting holds on 7 November from 9:00am.', 'announcement', '2026-10-21 14:30:00', true, $announcementIds[1]['uuid']);
 
         $notify($adminId, 'Three result sheets awaiting approval', 'JSS 2B Mathematics, Primary 5A English and SSS 2A Biology are ready for review.', 'result', date('Y-m-d H:i:s', strtotime('-30 minutes')), false);
         $notify($adminId, 'Mid-term break', 'School closes on 30 October and reopens on 9 November 2026.', 'announcement', '2026-10-24 09:00:00', false, $announcementIds[0]['uuid']);
         $notify($adminId, 'New admissions enquiry', 'Six new applications were received this week.', 'admissions', date('Y-m-d H:i:s', strtotime('-3 hours')), false);
-        $notify($adminId, 'Parent–Teacher meeting', 'The termly meeting holds on 7 November from 9:00am.', 'announcement', '2026-10-21 14:30:00', true, $announcementIds[1]['uuid']);
+        $notify($adminId, 'Parent-Teacher meeting', 'The termly meeting holds on 7 November from 9:00am.', 'announcement', '2026-10-21 14:30:00', true, $announcementIds[1]['uuid']);
 
         /* ---------------------------------------------------------------
            Admissions
@@ -955,10 +955,10 @@ return static function (PDO $pdo, string $demoPassword): array {
         $fourDays = date('Y-m-d', strtotime('+4 days'));
         $twoDaysAgo = date('Y-m-d', strtotime('-2 days'));
 
-        $mathAssignment = $addAssignment('JSS 2B', 'MTH', 'Quadratic equations — exercise 4B', 'Complete questions 1–12 in exercise 4B. Show all working.', $tomorrow);
-        $addAssignment('JSS 2B', 'ISL', 'Memorise Surah Al-Mulk (verses 1–15)', 'Recite verses 1–15 to the class teacher on Thursday.', $threeDays);
+        $mathAssignment = $addAssignment('JSS 2B', 'MTH', 'Quadratic equations, exercise 4B', 'Complete questions 1-12 in exercise 4B. Show all working.', $tomorrow);
+        $addAssignment('JSS 2B', 'ISL', 'Memorise Surah Al-Mulk (verses 1-15)', 'Recite verses 1-15 to the class teacher on Thursday.', $threeDays);
         $labAssignment = $addAssignment('JSS 2B', 'BSC', 'Water filtration lab report', 'Write up the filtration experiment, including your diagram and conclusion.', $twoDaysAgo);
-        $addAssignment('Primary 5A', 'MTH', 'Fractions workbook, pages 24–26', 'Complete the fraction addition and subtraction exercises.', $tomorrow);
+        $addAssignment('Primary 5A', 'MTH', 'Fractions workbook, pages 24-26', 'Complete the fraction addition and subtraction exercises.', $tomorrow);
         $addAssignment('Primary 5A', 'ARB', 'Arabic handwriting practice', 'Copy the new vocabulary into your exercise book three times.', $fourDays);
 
         $insert(

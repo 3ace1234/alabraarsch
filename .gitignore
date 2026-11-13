@@ -1,6 +1,6 @@
 
 # ---------------------------------------------------------------------------
-# Secrets — never commit real credentials
+# Secrets: never commit real credentials
 # ---------------------------------------------------------------------------
 backend/.env
 backend/.env.*

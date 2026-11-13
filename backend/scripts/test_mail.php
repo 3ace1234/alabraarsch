@@ -61,7 +61,7 @@ if ($driver === 'none') {
 try {
     $sent = Mailer::send([
         'to' => [$recipient],
-        'subject' => 'Al-Falaah mail test — ' . date('Y-m-d H:i'),
+        'subject' => 'Al-Falaah mail test, ' . date('Y-m-d H:i'),
         'text' => implode("\n", [
             'This is a test message from the Al-Falaah school portal.',
             '',

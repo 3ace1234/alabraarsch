@@ -1,5 +1,5 @@
 /* ============================================================
-   AL-FALAAH PORTAL — PASSWORD RECOVERY
+   AL-FALAAH PORTAL PASSWORD RECOVERY
    Handles the forgot-password request and the reset form.
    ============================================================ */
 (function () {

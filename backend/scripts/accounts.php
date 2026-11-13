@@ -49,7 +49,7 @@ if (trim($portal) === '/portal.html') {
 }
 
 $lines = [];
-$lines[] = 'AL-FALAAH SCHOOL PORTAL — TEST ACCOUNT DETAILS';
+$lines[] = 'AL-FALAAH SCHOOL PORTAL, TEST ACCOUNT DETAILS';
 $lines[] = 'Generated: ' . date('Y-m-d H:i:s');
 $lines[] = 'Portal:    ' . $portal;
 $lines[] = '';
@@ -58,7 +58,7 @@ $lines[] = 'All seeded accounts below use the shared demo password.';
 $lines[] = 'Accounts created later may have a different password, which is';
 $lines[] = 'stored as a one-way hash and cannot be recovered from the database.';
 $lines[] = '';
-$lines[] = 'LOCAL TESTING ONLY — DO NOT COMMIT OR SHARE THIS FILE.';
+$lines[] = 'LOCAL TESTING ONLY, DO NOT COMMIT OR SHARE THIS FILE.';
 $lines[] = '';
 
 $header = sprintf('%-8s  %-48s  %-18s  %-8s', 'ROLE', 'EMAIL', 'NAME', 'STATUS');

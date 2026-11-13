@@ -1,5 +1,5 @@
 /* ============================================================
-   AL-FALAAH — frontend interactions (vanilla JS)
+   AL-FALAAH frontend interactions (vanilla JS)
    ============================================================ */
 (function () {
   "use strict";

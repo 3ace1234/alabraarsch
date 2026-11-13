@@ -1,5 +1,5 @@
 /* ============================================================
-   AL-FALAAH PORTAL — LOGIN
+   AL-FALAAH PORTAL LOGIN
    Wires the role-based login panels to the JSON API, including
    the optional email-code step for staff and parent accounts.
    ============================================================ */

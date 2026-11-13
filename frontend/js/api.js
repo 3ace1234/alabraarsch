@@ -1,5 +1,5 @@
 /* ============================================================
-   AL-FALAAH PORTAL — API CLIENT
+   AL-FALAAH PORTAL API CLIENT
    Small promise-based wrapper around the JSON API.
    The base URL defaults to ../backend/public/api relative to the
    current page. Override window.ALFALAAH_API_BASE before loading

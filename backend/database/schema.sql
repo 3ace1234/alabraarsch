@@ -1,5 +1,5 @@
 -- ===========================================================================
--- Al-Falaah School Portal — MySQL / MariaDB schema
+-- Al-Falaah School Portal, MySQL / MariaDB schema
 -- Target: MariaDB 10.4+ / MySQL 8.0+
 --
 -- Apply with: php scripts/install.php

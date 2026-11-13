@@ -177,7 +177,7 @@ function check(bool $condition, string $label, ?string $detail = null): void
         return;
     }
 
-    echo "  FAIL {$label}" . ($detail !== null ? " — {$detail}" : '') . "\n";
+    echo "  FAIL {$label}" . ($detail !== null ? ", {$detail}" : '') . "\n";
     throw new RuntimeException('Smoke test failed: ' . $label);
 }
 
